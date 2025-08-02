@@ -128,7 +128,7 @@
 </head>
 <body>
     <div class="container">
-        <a href="/" class="back-link">← Back to Main App</a>
+        <a href="/index.html" class="back-link">← Back to Main App</a>
         
         <div class="header">
             <h1>🛠️ Admin Panel</h1>
@@ -191,6 +191,8 @@
     </div>
     
     <script>
+        // Configuration
+        const API_BASE_URL = '/api/v1';
         let csvPreviewData = null;
         
         async function previewCSV() {
@@ -206,7 +208,7 @@
             formData.append('file', fileInput.files[0]);
             
             try {
-                const response = await fetch('/api/v1/admin/csv-preview', {
+                const response = await fetch(`${API_BASE_URL}/admin/csv-preview`, {
                     method: 'POST',
                     body: formData
                 });
@@ -323,7 +325,7 @@
             formData.append('field_mapping', JSON.stringify(mapping));
             
             try {
-                const response = await fetch('/api/v1/admin/import-csv', {
+                const response = await fetch(`${API_BASE_URL}/admin/import-csv`, {
                     method: 'POST',
                     body: formData
                 });
@@ -359,7 +361,7 @@
             loading.style.display = 'block';
             
             try {
-                const response = await fetch('/api/v1/admin/import-history');
+                const response = await fetch(`${API_BASE_URL}/admin/import-history`);
                 const data = await response.json();
                 
                 let html = '<h4>Recent Imports</h4>';
@@ -433,7 +435,7 @@
             }
             
             try {
-                const response = await fetch('/api/v1/admin/clear-data?confirm=DELETE_ALL_DATA', {
+                const response = await fetch(`${API_BASE_URL}/admin/clear-data?confirm=DELETE_ALL_DATA`, {
                     method: 'DELETE'
                 });
                 
