@@ -53,7 +53,8 @@ Thumbs.db
 
 # Logs
 *.log
-logs/
+logs/*.log
+logs/*.zip
 
 # Temporary files
 tmp/
@@ -75,6 +76,8 @@ htmlcov/
 .tox/
 .cache
 .pytest_cache/
+coverage.xml
+.coverage.*
 
 # Node modules (if any)
 node_modules/
@@ -82,3 +85,12 @@ node_modules/
 # Backup files
 *.bak
 *.backup
+
+# Security reports
+bandit-report.json
+safety-report.json
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json

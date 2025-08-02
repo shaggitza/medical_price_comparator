@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
 
+from ..config import app_logger
 from ..models import Provider
 
 router = APIRouter()
@@ -9,10 +10,14 @@ router = APIRouter()
 @router.get("/")
 async def list_providers():
     """List all healthcare providers"""
+    app_logger.info("Retrieving list of healthcare providers")
+    
     try:
         providers = await Provider.find_all().to_list()
+        app_logger.debug(f"Found {len(providers)} providers in database")
         
         if not providers:
+            app_logger.info("No providers found in database, returning default providers")
             # Return default providers when database is empty
             default_providers = [
                 {"name": "Regina Maria", "slug": "reginamaria", "website": "https://www.reginamaria.ro"},
@@ -22,8 +27,10 @@ async def list_providers():
             ]
             return {"providers": default_providers, "source": "default"}
         
+        app_logger.info(f"Successfully retrieved {len(providers)} providers from database")
         return {"providers": providers, "source": "database"}
     except Exception as e:
+        app_logger.error(f"Error retrieving providers: {e}")
         # Fallback to default providers on error
         default_providers = [
             {"name": "Regina Maria", "slug": "reginamaria", "website": "https://www.reginamaria.ro"},

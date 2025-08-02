@@ -5,6 +5,7 @@ import io
 import json
 from datetime import datetime
 
+from ..config import app_logger
 from ..models import MedicalAnalysis, PriceInfo, ProviderPrices, ImportedData
 
 router = APIRouter()
@@ -17,16 +18,21 @@ async def import_csv_data(
     field_mapping: str = Form(...)
 ):
     """Import medical analysis data from CSV file"""
+    app_logger.info(f"Starting CSV import for provider: {provider}, file: {file.filename}")
+    
     if not file.filename.endswith('.csv'):
+        app_logger.warning(f"Invalid file type for import: {file.filename}")
         raise HTTPException(status_code=400, detail="File must be a CSV")
     
     try:
         # Parse field mapping
         mapping = json.loads(field_mapping)
+        app_logger.debug(f"Field mapping: {mapping}")
         required_fields = ['name', 'price', 'currency']
         
         for field in required_fields:
             if field not in mapping:
+                app_logger.error(f"Missing required field mapping: {field}")
                 raise HTTPException(status_code=400, detail=f"Missing required field mapping: {field}")
         
         # Read CSV content

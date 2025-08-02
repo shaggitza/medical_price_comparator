@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
 
+from .config import settings, app_logger
 from .database import connect_to_mongo, close_mongo_connection
 from .api import analyses, providers, admin, ocr
 
@@ -11,23 +12,25 @@ from .api import analyses, providers, admin, ocr
 async def lifespan(app: FastAPI):
     # Startup
     try:
+        app_logger.info("Starting Medical Price Comparator API...")
         await connect_to_mongo()
         
         # Initialize default data
         from .services.init_data import initialize_app_data
         await initialize_app_data()
-        print("Connected to MongoDB successfully")
+        app_logger.info("Connected to MongoDB successfully")
     except Exception as e:
-        print(f"Warning: Could not connect to MongoDB: {e}")
-        print("Application will run in limited mode without database features")
+        app_logger.warning(f"Could not connect to MongoDB: {e}")
+        app_logger.info("Application will run in limited mode without database features")
     
     yield
     
     # Shutdown
     try:
         await close_mongo_connection()
+        app_logger.info("Application shutdown complete")
     except Exception as e:
-        print(f"Warning during shutdown: {e}")
+        app_logger.warning(f"Warning during shutdown: {e}")
 
 
 app = FastAPI(
@@ -56,6 +59,7 @@ app.include_router(ocr.router, prefix="/api/v1/ocr", tags=["ocr"])
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
+    app_logger.debug("Health check requested")
     return {"status": "healthy", "message": "Medical Price Comparator API is running"}
 
 

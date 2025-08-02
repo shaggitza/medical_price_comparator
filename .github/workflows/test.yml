@@ -1,0 +1,189 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ main, develop, copilot/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: [3.9, 3.10, 3.11]
+    
+    services:
+      mongodb:
+        image: mongo:6.0
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin
+          MONGO_INITDB_ROOT_PASSWORD: password123
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd mongo
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        cd backend
+        pip install -r requirements.txt
+    
+    - name: Create logs directory
+      run: mkdir -p logs
+    
+    - name: Set environment variables
+      run: |
+        echo "MONGODB_URL=mongodb://admin:password123@localhost:27017/test_medical_comparator?authSource=admin" >> $GITHUB_ENV
+        echo "DATABASE_NAME=test_medical_comparator" >> $GITHUB_ENV
+        echo "TESTING=true" >> $GITHUB_ENV
+        echo "LOG_LEVEL=ERROR" >> $GITHUB_ENV
+    
+    - name: Wait for MongoDB
+      run: |
+        until mongo --host localhost:27017 --username admin --password password123 --authenticationDatabase admin --eval "print('MongoDB is ready')"; do
+          echo "Waiting for MongoDB to be ready..."
+          sleep 2
+        done
+    
+    - name: Run tests with pytest
+      run: |
+        cd backend
+        python -m pytest ../tests/ -v --cov=app --cov-report=xml --cov-report=term-missing
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+    
+    - name: Install linting dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install black isort flake8 mypy
+        cd backend
+        pip install -r requirements.txt
+    
+    - name: Run Black
+      run: |
+        black --check --diff backend/app/ tests/
+    
+    - name: Run isort
+      run: |
+        isort --check-only --diff backend/app/ tests/
+    
+    - name: Run flake8
+      run: |
+        flake8 backend/app/ tests/ --max-line-length=88 --extend-ignore=E203,W503
+    
+    - name: Run mypy
+      run: |
+        mypy backend/app/ --ignore-missing-imports
+
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+    
+    - name: Install security scanning tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit safety
+        cd backend
+        pip install -r requirements.txt
+    
+    - name: Run Bandit security scan
+      run: |
+        bandit -r backend/app/ -f json -o bandit-report.json || true
+        bandit -r backend/app/
+    
+    - name: Run Safety check
+      run: |
+        cd backend
+        safety check --json --output safety-report.json || true
+        safety check
+    
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          backend/safety-report.json
+
+  build-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build Docker images
+      run: |
+        docker-compose build
+    
+    - name: Start services
+      run: |
+        docker-compose up -d
+        sleep 30  # Wait for services to start
+    
+    - name: Test application health
+      run: |
+        curl -f http://localhost:8000/health || exit 1
+        curl -f http://localhost:8000/ || exit 1
+    
+    - name: Test API endpoints
+      run: |
+        # Test providers endpoint
+        curl -f http://localhost:8000/api/v1/providers/ || exit 1
+        
+        # Test analyses search
+        curl -f "http://localhost:8000/api/v1/analyses/search?query=test" || exit 1
+    
+    - name: Stop services
+      run: |
+        docker-compose down
+    
+    - name: Clean up Docker
+      run: |
+        docker system prune -af

@@ -3,6 +3,7 @@ from typing import List, Optional
 import re
 from beanie import PydanticObjectId
 
+from ..config import app_logger
 from ..models import AnalysisQuery, MedicalAnalysis
 
 router = APIRouter()
@@ -14,9 +15,16 @@ async def search_analyses(
     limit: int = Query(20, description="Maximum number of results")
 ):
     """Search for medical analyses by name"""
+    app_logger.info(f"Searching analyses with query: '{query}', limit: {limit}")
+    
+    if limit <= 0 or limit > 100:
+        app_logger.warning(f"Invalid limit requested: {limit}")
+        raise HTTPException(status_code=422, detail="Limit must be between 1 and 100")
+    
     try:
         # Create case-insensitive regex pattern
         pattern = re.compile(query, re.IGNORECASE)
+        app_logger.debug(f"Using regex pattern: {pattern.pattern}")
         
         # Search in name and alternative_names fields using Beanie
         results = await MedicalAnalysis.find({
@@ -26,7 +34,10 @@ async def search_analyses(
             ]
         }).limit(limit).to_list()
         
+        app_logger.info(f"Found {len(results)} analyses matching query '{query}'")
+        
         if not results:
+            app_logger.debug("No results found, returning empty list")
             # Return sample data when no results found
             sample_analyses = [
                 {"name": "Hemoglobina", "category": "blood", "alternative_names": ["Hb", "Hemoglobin"], "found": False},
