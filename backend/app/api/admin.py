@@ -5,7 +5,6 @@ import io
 import json
 from datetime import datetime
 
-from ..database import get_database
 from ..models import MedicalAnalysis, PriceInfo, ProviderPrices, ImportedData
 
 router = APIRouter()
@@ -18,8 +17,6 @@ async def import_csv_data(
     field_mapping: str = Form(...)
 ):
     """Import medical analysis data from CSV file"""
-    db = get_database()
-    
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="File must be a CSV")
     
@@ -74,20 +71,21 @@ async def import_csv_data(
                     if alt_names_str:
                         alternative_names = [name.strip() for name in alt_names_str.split(';') if name.strip()]
                 
-                # Check if analysis already exists
-                existing = await db.medical_analyses.find_one({"name": analysis_name})
+                # Check if analysis already exists using Beanie
+                existing = await MedicalAnalysis.find_one(MedicalAnalysis.name == analysis_name)
                 
                 if existing:
                     # Update existing analysis with new price
                     price_info = PriceInfo(amount=price, currency=currency)
                     
-                    update_path = f"prices.{provider}.{price_type}"
-                    await db.medical_analyses.update_one(
-                        {"_id": existing["_id"]},
-                        {"$set": {update_path: price_info.dict()}}
-                    )
+                    # Update the prices dictionary
+                    if provider not in existing.prices:
+                        existing.prices[provider] = {}
+                    existing.prices[provider][price_type] = price_info.dict()
+                    
+                    await existing.save()
                 else:
-                    # Create new analysis
+                    # Create new analysis using Beanie
                     price_info = PriceInfo(amount=price, currency=currency)
                     provider_prices = ProviderPrices()
                     setattr(provider_prices, price_type, price_info)
@@ -97,17 +95,17 @@ async def import_csv_data(
                         alternative_names=alternative_names,
                         category=category,
                         description=description if description else None,
-                        prices={provider: provider_prices}
+                        prices={provider: provider_prices.dict()}
                     )
                     
-                    await db.medical_analyses.insert_one(new_analysis.dict(by_alias=True, exclude={"id"}))
+                    await new_analysis.create()
                 
                 imported_count += 1
                 
             except Exception as e:
                 errors.append(f"Row {row_num}: {str(e)}")
         
-        # Save import log
+        # Save import log using Beanie
         import_log = ImportedData(
             filename=file.filename,
             import_date=datetime.now().isoformat(),
@@ -117,7 +115,7 @@ async def import_csv_data(
             errors=errors
         )
         
-        await db.import_logs.insert_one(import_log.dict(by_alias=True, exclude={"id"}))
+        await import_log.create()
         
         return {
             "message": "Import completed",
@@ -136,16 +134,11 @@ async def import_csv_data(
 @router.get("/import-history")
 async def get_import_history():
     """Get history of data imports"""
-    db = get_database()
-    
-    cursor = db.import_logs.find({}).sort("import_date", -1).limit(50)
-    
-    results = []
-    async for doc in cursor:
-        import_log = ImportedData(**doc)
-        results.append(import_log)
-    
-    return {"imports": results}
+    try:
+        imports = await ImportedData.find_all().sort("-import_date").limit(50).to_list()
+        return {"imports": imports}
+    except Exception as e:
+        return {"imports": [], "error": str(e)}
 
 
 @router.post("/csv-preview")
@@ -219,9 +212,9 @@ async def clear_all_data(confirm: str = ""):
     if confirm != "DELETE_ALL_DATA":
         raise HTTPException(status_code=400, detail="Must provide confirmation")
     
-    db = get_database()
-    
-    # Delete all analyses
-    result = await db.medical_analyses.delete_many({})
-    
-    return {"message": f"Deleted {result.deleted_count} analyses"}
+    try:
+        # Delete all analyses using Beanie
+        result = await MedicalAnalysis.delete_all()
+        return {"message": f"Deleted all analyses"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error clearing data: {str(e)}")

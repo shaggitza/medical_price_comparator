@@ -1,21 +1,15 @@
-from ..database import get_database
 from ..api.providers import initialize_default_providers
+from ..models import MedicalAnalysis
 
 
 async def initialize_app_data():
     """Initialize application with default data"""
-    db = get_database()
-    
-    if db is None:
-        print("Database not available. Running in limited mode.")
-        return
-    
     try:
         # Initialize default providers
         await initialize_default_providers()
         
-        # Check if we have any analyses
-        analysis_count = await db.medical_analyses.count_documents({})
+        # Check if we have any analyses using Beanie
+        analysis_count = await MedicalAnalysis.count()
         
         if analysis_count == 0:
             print("No medical analyses found. Please use the admin interface to import data.")

@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
 
-from ..database import get_database
 from ..models import Provider
 
 router = APIRouter()
@@ -10,27 +9,20 @@ router = APIRouter()
 @router.get("/")
 async def list_providers():
     """List all healthcare providers"""
-    db = get_database()
-    
-    if db is None:
-        # Return default providers when database is not available
-        default_providers = [
-            {"name": "Regina Maria", "slug": "reginamaria", "website": "https://www.reginamaria.ro"},
-            {"name": "Medlife", "slug": "medlife", "website": "https://www.medlife.ro"},
-            {"name": "Synevo", "slug": "synevo", "website": "https://www.synevo.ro"},
-            {"name": "Medicover", "slug": "medicover", "website": "https://www.medicover.ro"}
-        ]
-        return {"providers": default_providers, "source": "default"}
-    
     try:
-        cursor = db.providers.find({})
+        providers = await Provider.find_all().to_list()
         
-        results = []
-        async for doc in cursor:
-            provider = Provider(**doc)
-            results.append(provider)
+        if not providers:
+            # Return default providers when database is empty
+            default_providers = [
+                {"name": "Regina Maria", "slug": "reginamaria", "website": "https://www.reginamaria.ro"},
+                {"name": "Medlife", "slug": "medlife", "website": "https://www.medlife.ro"},
+                {"name": "Synevo", "slug": "synevo", "website": "https://www.synevo.ro"},
+                {"name": "Medicover", "slug": "medicover", "website": "https://www.medicover.ro"}
+            ]
+            return {"providers": default_providers, "source": "default"}
         
-        return {"providers": results, "source": "database"}
+        return {"providers": providers, "source": "database"}
     except Exception as e:
         # Fallback to default providers on error
         default_providers = [
@@ -45,41 +37,30 @@ async def list_providers():
 @router.get("/{provider_slug}")
 async def get_provider(provider_slug: str):
     """Get detailed information for a specific provider"""
-    db = get_database()
-    
-    doc = await db.providers.find_one({"slug": provider_slug})
-    if not doc:
+    provider = await Provider.find_one(Provider.slug == provider_slug)
+    if not provider:
         raise HTTPException(status_code=404, detail="Provider not found")
     
-    return Provider(**doc)
+    return provider
 
 
 @router.post("/")
 async def create_provider(provider: Provider):
     """Create a new healthcare provider"""
-    db = get_database()
-    
     # Check if provider with same slug already exists
-    existing = await db.providers.find_one({"slug": provider.slug})
+    existing = await Provider.find_one(Provider.slug == provider.slug)
     if existing:
         raise HTTPException(status_code=400, detail="Provider with this slug already exists")
     
-    result = await db.providers.insert_one(provider.dict(by_alias=True, exclude={"id"}))
-    provider.id = result.inserted_id
-    
-    return provider
+    created_provider = await provider.create()
+    return created_provider
 
 
 # Initialize default providers
 async def initialize_default_providers():
     """Initialize default Romanian healthcare providers"""
-    db = get_database()
-    
-    if db is None:
-        return  # Cannot initialize without database
-    
     try:
-        default_providers = [
+        default_providers_data = [
             {
                 "name": "Regina Maria",
                 "slug": "reginamaria",
@@ -114,9 +95,10 @@ async def initialize_default_providers():
             }
         ]
         
-        for provider_data in default_providers:
-            existing = await db.providers.find_one({"slug": provider_data["slug"]})
+        for provider_data in default_providers_data:
+            existing = await Provider.find_one(Provider.slug == provider_data["slug"])
             if not existing:
-                await db.providers.insert_one(provider_data)
+                provider = Provider(**provider_data)
+                await provider.create()
     except Exception as e:
         print(f"Error initializing providers: {e}")
