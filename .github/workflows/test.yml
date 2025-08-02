@@ -10,39 +10,13 @@ jobs:
   test:
     runs-on: ubuntu-latest
     
-    strategy:
-      matrix:
-        python-version: [3.9, 3.10, 3.11]
-    
-    services:
-      mongodb:
-        image: mongo:6.0
-        env:
-          MONGO_INITDB_ROOT_USERNAME: admin
-          MONGO_INITDB_ROOT_PASSWORD: password123
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd mongo
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python 3.12
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
-    
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+        python-version: '3.12'
     
     - name: Install dependencies
       run: |
@@ -55,17 +29,8 @@ jobs:
     
     - name: Set environment variables
       run: |
-        echo "MONGODB_URL=mongodb://admin:password123@localhost:27017/test_medical_comparator?authSource=admin" >> $GITHUB_ENV
-        echo "DATABASE_NAME=test_medical_comparator" >> $GITHUB_ENV
         echo "TESTING=true" >> $GITHUB_ENV
         echo "LOG_LEVEL=ERROR" >> $GITHUB_ENV
-    
-    - name: Wait for MongoDB
-      run: |
-        until mongo --host localhost:27017 --username admin --password password123 --authenticationDatabase admin --eval "print('MongoDB is ready')"; do
-          echo "Waiting for MongoDB to be ready..."
-          sleep 2
-        done
     
     - name: Run tests with pytest
       run: |
@@ -86,10 +51,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python 3.11
+    - name: Set up Python 3.12
       uses: actions/setup-python@v4
       with:
-        python-version: 3.11
+        python-version: '3.12'
     
     - name: Install linting dependencies
       run: |
@@ -120,10 +85,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python 3.11
+    - name: Set up Python 3.12
       uses: actions/setup-python@v4
       with:
-        python-version: 3.11
+        python-version: '3.12'
     
     - name: Install security scanning tools
       run: |

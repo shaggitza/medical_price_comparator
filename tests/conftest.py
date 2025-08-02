@@ -24,7 +24,19 @@ async def client():
     """Create test client with mocked database"""
     # Mock database operations to avoid needing real database
     with patch('backend.app.database.connect_to_mongo', new_callable=AsyncMock), \
-         patch('backend.app.database.close_mongo_connection', new_callable=AsyncMock):
+         patch('backend.app.database.close_mongo_connection', new_callable=AsyncMock), \
+         patch('backend.app.models.MedicalAnalysis.find_one', new_callable=AsyncMock) as mock_find_one, \
+         patch('backend.app.models.MedicalAnalysis.find', new_callable=AsyncMock), \
+         patch('backend.app.models.MedicalAnalysis.find_all', new_callable=AsyncMock), \
+         patch('backend.app.models.MedicalAnalysis.create', new_callable=AsyncMock), \
+         patch('backend.app.models.MedicalAnalysis.save', new_callable=AsyncMock), \
+         patch('backend.app.models.ImportedData.create', new_callable=AsyncMock), \
+         patch('backend.app.models.ImportedData.find_all', new_callable=AsyncMock), \
+         patch('backend.app.models.Provider.find_all', new_callable=AsyncMock):
+        
+        # Set up default mock behaviors
+        mock_find_one.return_value = None  # No existing analysis found
+        
         async with AsyncClient(app=app, base_url="http://test") as ac:
             yield ac
 
