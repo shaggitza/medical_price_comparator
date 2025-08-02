@@ -155,21 +155,45 @@ async def preview_csv_structure(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="File must be a CSV")
     
     try:
+        # Limit file size to 10MB to prevent memory issues
+        MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
         content = await file.read()
-        csv_content = content.decode('utf-8')
         
-        # Read first few rows
-        csv_reader = csv.DictReader(io.StringIO(csv_content))
+        if len(content) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=400, detail="File too large. Maximum size is 10MB")
+        
+        # Try different encodings to handle various file formats
+        csv_content = None
+        for encoding in ['utf-8', 'utf-8-sig', 'latin1', 'cp1252']:
+            try:
+                csv_content = content.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+        
+        if csv_content is None:
+            raise HTTPException(status_code=400, detail="Unable to decode file. Please ensure it's a valid CSV with UTF-8 encoding")
+        
+        # Limit preview to first 1000 characters to avoid processing huge files
+        preview_content = csv_content[:1000] if len(csv_content) > 1000 else csv_content
+        
+        # Read first few rows with safety limits
+        csv_reader = csv.DictReader(io.StringIO(preview_content))
         
         # Get field names
         fieldnames = csv_reader.fieldnames
         
-        # Get first 3 rows as sample
+        if not fieldnames:
+            raise HTTPException(status_code=400, detail="No headers found in CSV file")
+        
+        # Get first 3 rows as sample with safety counter
         sample_rows = []
-        for i, row in enumerate(csv_reader):
-            if i >= 3:
+        row_count = 0
+        for row in csv_reader:
+            if row_count >= 3:  # Limit to 3 sample rows
                 break
             sample_rows.append(row)
+            row_count += 1
         
         return {
             "fieldnames": fieldnames,
@@ -183,6 +207,8 @@ async def preview_csv_structure(file: UploadFile = File(...)):
             }
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error reading CSV: {str(e)}")
 

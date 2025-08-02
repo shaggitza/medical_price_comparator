@@ -194,15 +194,28 @@
         // Configuration
         const API_BASE_URL = '/api/v1';
         let csvPreviewData = null;
+        let isPreviewLoading = false;
         
         async function previewCSV() {
             const fileInput = document.getElementById('csvFile');
             const previewContainer = document.getElementById('csvPreview');
             
+            // Prevent multiple simultaneous requests
+            if (isPreviewLoading) {
+                console.log('Preview already loading, skipping');
+                return;
+            }
+            
             if (!fileInput.files[0]) {
                 previewContainer.style.display = 'none';
                 return;
             }
+            
+            // Show loading state
+            isPreviewLoading = true;
+            const previewContent = document.getElementById('previewContent');
+            previewContent.innerHTML = '<div class="loading">Loading CSV preview...</div>';
+            previewContainer.style.display = 'block';
             
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
@@ -210,14 +223,23 @@
             try {
                 const response = await fetch(`${API_BASE_URL}/admin/csv-preview`, {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    signal: AbortSignal.timeout(30000) // 30 second timeout
                 });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Failed to preview CSV');
+                }
                 
                 csvPreviewData = await response.json();
                 displayCSVPreview(csvPreviewData);
                 previewContainer.style.display = 'block';
             } catch (error) {
-                alert('Error previewing CSV: ' + error.message);
+                console.error('CSV preview error:', error);
+                previewContent.innerHTML = `<div class="result error">Error previewing CSV: ${error.message}</div>`;
+            } finally {
+                isPreviewLoading = false;
             }
         }
         
