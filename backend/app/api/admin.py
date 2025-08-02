@@ -148,7 +148,7 @@ async def get_import_history():
     return {"imports": results}
 
 
-@router.get("/csv-preview")
+@router.post("/csv-preview")
 async def preview_csv_structure(file: UploadFile = File(...)):
     """Preview CSV structure to help with field mapping"""
     if not file.filename.endswith('.csv'):
