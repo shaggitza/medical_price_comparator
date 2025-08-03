@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import os
 
@@ -54,6 +55,11 @@ app.include_router(analyses.router, prefix="/api/v1/analyses", tags=["analyses"]
 app.include_router(providers.router, prefix="/api/v1/providers", tags=["providers"])
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(ocr.router, prefix="/api/v1/ocr", tags=["ocr"])
+
+# Mount static files for development
+frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "..", "frontend")
+if os.path.exists(frontend_path):
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="static")
 
 
 @app.get("/health")
