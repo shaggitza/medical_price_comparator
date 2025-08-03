@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from pydantic_settings import BaseSettings
 from loguru import logger
 import sys
@@ -18,6 +19,34 @@ class Settings(BaseSettings):
     
     # AI/OCR Settings
     openai_api_key: str = ""
+    
+    # Data directory path - configurable for different environments
+    data_path: str = ""
+    
+    @property
+    def resolved_data_path(self) -> Path:
+        """Resolve the data path based on environment"""
+        if self.data_path:
+            # Use explicitly configured path
+            return Path(self.data_path)
+        
+        # Auto-detect data path based on environment
+        docker_path = Path("/app/data")
+        if docker_path.exists():
+            # Running in Docker container
+            return docker_path
+        
+        # Running locally - find data directory relative to project root
+        current_path = Path(__file__).parent
+        while current_path.parent != current_path:  # Stop at filesystem root
+            data_dir = current_path / "data"
+            if data_dir.exists() and data_dir.is_dir():
+                return data_dir
+            current_path = current_path.parent
+        
+        # Fallback to relative path from backend directory
+        backend_parent = Path(__file__).parent.parent.parent
+        return backend_parent / "data"
     
     class Config:
         env_file = ".env"
