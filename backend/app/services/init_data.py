@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from ..api.providers import initialize_default_providers
 from ..models import MedicalAnalysis, Provider
+from ..config import settings
 
 
 async def initialize_app_data():
@@ -27,7 +28,16 @@ async def initialize_app_data():
 
 async def load_sample_data():
     """Load sample data from CSV files"""
-    data_dir = Path("/app/data")
+    data_dir = settings.resolved_data_path
+    print(f"Loading sample data from: {data_dir}")
+    
+    if not data_dir.exists():
+        print(f"Warning: Data directory {data_dir} does not exist. Cannot load sample data.")
+        print("Available paths checked:")
+        print(f"  - Configured path: {settings.data_path or 'Not set'}")
+        print(f"  - Docker path: /app/data ({'exists' if Path('/app/data').exists() else 'does not exist'})")
+        print(f"  - Resolved path: {data_dir}")
+        return
     
     # Define CSV files to load
     csv_files = [
@@ -35,13 +45,33 @@ async def load_sample_data():
         ("sample_analyses_reginamaria.csv", "reginamaria")
     ]
     
+    loaded_any = False
     for filename, provider_slug in csv_files:
         csv_path = data_dir / filename
         if csv_path.exists():
             print(f"Loading data from {filename}...")
             await load_csv_data(csv_path, provider_slug)
+            loaded_any = True
         else:
-            print(f"Warning: {filename} not found in data directory")
+            print(f"Warning: {filename} not found in data directory {data_dir}")
+    
+    if not loaded_any:
+        print(f"Warning: No sample data files found in {data_dir}")
+        print("Expected files:")
+        for filename, _ in csv_files:
+            print(f"  - {filename}")
+        
+        # List available files for debugging
+        try:
+            available_files = list(data_dir.glob("*"))
+            if available_files:
+                print("Available files in data directory:")
+                for file in available_files:
+                    print(f"  - {file.name}")
+            else:
+                print("Data directory is empty")
+        except Exception as e:
+            print(f"Could not list files in data directory: {e}")
 
 
 async def load_csv_data(csv_path: Path, provider_slug: str):
