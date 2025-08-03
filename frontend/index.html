@@ -117,11 +117,43 @@
             font-style: italic; 
             color: #856404; 
         }
-        .resolution-dropdown { 
+        .table-search-input { 
             width: 100%; 
-            padding: 5px; 
+            padding: 8px; 
             border: 1px solid #ced4da; 
             border-radius: 3px; 
+            font-size: 14px;
+        }
+        .table-suggestions { 
+            position: absolute; 
+            top: 100%; 
+            left: 0; 
+            right: 0; 
+            background: white; 
+            border: 1px solid #ddd; 
+            border-top: none; 
+            max-height: 200px; 
+            overflow-y: auto; 
+            z-index: 1000; 
+            display: none; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .table-suggestion-item { 
+            padding: 8px 10px; 
+            cursor: pointer; 
+            border-bottom: 1px solid #eee; 
+            font-size: 13px;
+        }
+        .table-suggestion-item:hover { 
+            background: #f5f5f5; 
+        }
+        .table-suggestion-category { 
+            font-size: 0.7em; 
+            color: #666; 
+            font-style: italic; 
+        }
+        .table-search-container {
+            position: relative;
         }
         .resolve-btn { 
             background: #28a745; 
@@ -207,6 +239,14 @@
                 if (!e.target.closest('.search-section')) {
                     hideSuggestions();
                 }
+                
+                // Hide table suggestions when clicking outside any table search container
+                if (!e.target.closest('.table-search-container')) {
+                    // Hide all table suggestions
+                    pendingItems.forEach(pending => {
+                        hideTableSuggestions(pending.id);
+                    });
+                }
             });
         });
         
@@ -279,6 +319,110 @@
             document.getElementById('searchInput').value = analysisName;
             hideSuggestions();
             addAnalysisToTable();
+        }
+        
+        // Table search functionality for pending items
+        let tableSearchTimeouts = {};
+        
+        function handleTableSearchInput(pendingId, query) {
+            // Clear previous timeout for this specific search
+            if (tableSearchTimeouts[pendingId]) {
+                clearTimeout(tableSearchTimeouts[pendingId]);
+            }
+            
+            query = query.trim();
+            
+            if (query.length < 2) {
+                hideTableSuggestions(pendingId);
+                return;
+            }
+            
+            // Debounce suggestions request
+            tableSearchTimeouts[pendingId] = setTimeout(() => {
+                fetchTableSuggestions(pendingId, query);
+            }, 300);
+        }
+        
+        async function fetchTableSuggestions(pendingId, query) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/analyses/suggestions?query=${encodeURIComponent(query)}&limit=8`);
+                const data = await response.json();
+                displayTableSuggestions(pendingId, data.suggestions || []);
+            } catch (error) {
+                console.error('Error fetching table suggestions:', error);
+                hideTableSuggestions(pendingId);
+            }
+        }
+        
+        function displayTableSuggestions(pendingId, suggestions) {
+            const suggestionsDiv = document.getElementById(`tableSuggestions_${pendingId}`);
+            
+            if (!suggestionsDiv) {
+                return; // Element might not exist if table was updated
+            }
+            
+            if (suggestions.length === 0) {
+                hideTableSuggestions(pendingId);
+                return;
+            }
+            
+            let html = '';
+            suggestions.forEach(suggestion => {
+                html += `
+                    <div class="table-suggestion-item" onclick="selectTableSuggestion(${pendingId}, '${suggestion.name}')">
+                        <div>${suggestion.name}</div>
+                        <div class="table-suggestion-category">${suggestion.category}</div>
+                    </div>
+                `;
+            });
+            
+            suggestionsDiv.innerHTML = html;
+            suggestionsDiv.style.display = 'block';
+        }
+        
+        function hideTableSuggestions(pendingId) {
+            const suggestionsDiv = document.getElementById(`tableSuggestions_${pendingId}`);
+            if (suggestionsDiv) {
+                suggestionsDiv.style.display = 'none';
+            }
+        }
+        
+        async function selectTableSuggestion(pendingId, analysisName) {
+            try {
+                // Hide suggestions immediately
+                hideTableSuggestions(pendingId);
+                
+                // Try to add the selected analysis
+                const response = await fetch(`${API_BASE_URL}/analyses/compare`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        analysis_names: [analysisName]
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.results && data.results.length > 0 && data.results[0].found !== false) {
+                    const analysis = data.results[0];
+                    
+                    // Add to table if not already there
+                    if (!analysisTable.some(item => item.name === analysis.name)) {
+                        analysisTable.push(analysis);
+                    }
+                    
+                    // Remove from pending items
+                    pendingItems = pendingItems.filter(item => item.id !== pendingId);
+                    
+                    updateAnalysisTable();
+                } else {
+                    alert('Could not find the selected analysis in database.');
+                }
+            } catch (error) {
+                alert('Error adding analysis: ' + error.message);
+            }
         }
         
         async function addAnalysisToTable() {
@@ -403,14 +547,17 @@
                 html += `<small>OCR detected item - needs manual resolution</small>`;
                 html += '</td>';
                 
-                // Span across provider columns with resolution dropdown
+                // Span across provider columns with search input
                 html += `<td colspan="${providers.size}">`;
-                html += `<select class="resolution-dropdown" id="resolve_${pending.id}" onchange="loadSuggestions('${pending.detectedText}', ${pending.id})">`;
-                html += `<option value="">Choose an action...</option>`;
-                html += `<option value="search">Search for similar analysis</option>`;
-                html += `<option value="manual">Enter manually in search box</option>`;
-                html += `</select>`;
-                html += `<div id="suggestions_${pending.id}" style="margin-top: 10px; display: none;"></div>`;
+                html += `<div class="table-search-container">`;
+                html += `<input type="text" class="table-search-input" id="search_${pending.id}" `;
+                html += `value="${pending.detectedText}" `;
+                html += `placeholder="Search for analysis name..." `;
+                html += `autocomplete="off" `;
+                html += `oninput="handleTableSearchInput(${pending.id}, this.value)" `;
+                html += `onfocus="this.select(); handleTableSearchInput(${pending.id}, this.value)">`;
+                html += `<div id="tableSuggestions_${pending.id}" class="table-suggestions"></div>`;
+                html += `</div>`;
                 html += '</td>';
                 
                 html += `<td>`;
@@ -521,94 +668,6 @@
         
         function dismissPendingItem(index) {
             pendingItems.splice(index, 1);
-            updateAnalysisTable();
-        }
-        
-        async function loadSuggestions(detectedText, pendingId) {
-            const dropdown = document.getElementById(`resolve_${pendingId}`);
-            const suggestionsDiv = document.getElementById(`suggestions_${pendingId}`);
-            
-            if (dropdown.value === 'search') {
-                // Show loading
-                suggestionsDiv.style.display = 'block';
-                suggestionsDiv.innerHTML = '<p>Searching for similar analyses...</p>';
-                
-                try {
-                    // Search for suggestions based on detected text
-                    const response = await fetch(`${API_BASE_URL}/analyses/suggestions?query=${encodeURIComponent(detectedText)}&limit=5`);
-                    const data = await response.json();
-                    
-                    if (data.suggestions && data.suggestions.length > 0) {
-                        let html = '<p><strong>Select a matching analysis:</strong></p>';
-                        data.suggestions.forEach(suggestion => {
-                            html += `
-                                <div style="margin: 5px 0;">
-                                    <button class="resolve-btn" onclick="resolvePendingItem(${pendingId}, '${suggestion.name}')">
-                                        Select: ${suggestion.name}
-                                    </button>
-                                    <small style="color: #666; margin-left: 10px;">(${suggestion.category})</small>
-                                </div>
-                            `;
-                        });
-                        html += '<p><small>Or dismiss this item if none of these match.</small></p>';
-                        suggestionsDiv.innerHTML = html;
-                    } else {
-                        suggestionsDiv.innerHTML = '<p>No similar analyses found. Try entering the analysis manually in the search box above, or dismiss this item.</p>';
-                    }
-                } catch (error) {
-                    suggestionsDiv.innerHTML = '<p>Error searching for suggestions. Try entering the analysis manually.</p>';
-                }
-            } else if (dropdown.value === 'manual') {
-                suggestionsDiv.style.display = 'block';
-                suggestionsDiv.innerHTML = `
-                    <p><strong>Manual Entry:</strong></p>
-                    <p>Copy this text and search manually: <code>${detectedText}</code></p>
-                    <p>Use the search box at the top of the page to find and add the correct analysis.</p>
-                    <button class="dismiss-btn" onclick="dismissPendingItemById(${pendingId})">Dismiss this item</button>
-                `;
-            } else {
-                suggestionsDiv.style.display = 'none';
-            }
-        }
-        
-        async function resolvePendingItem(pendingId, analysisName) {
-            try {
-                // Try to add the selected analysis
-                const response = await fetch(`${API_BASE_URL}/analyses/compare`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        analysis_names: [analysisName]
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.results && data.results.length > 0 && data.results[0].found !== false) {
-                    const analysis = data.results[0];
-                    
-                    // Add to table if not already there
-                    if (!analysisTable.some(item => item.name === analysis.name)) {
-                        analysisTable.push(analysis);
-                    }
-                    
-                    // Remove from pending items
-                    pendingItems = pendingItems.filter(item => item.id !== pendingId);
-                    
-                    updateAnalysisTable();
-                    alert(`Successfully added "${analysis.name}" to comparison table!`);
-                } else {
-                    alert('Could not find the selected analysis in database.');
-                }
-            } catch (error) {
-                alert('Error adding analysis: ' + error.message);
-            }
-        }
-        
-        function dismissPendingItemById(pendingId) {
-            pendingItems = pendingItems.filter(item => item.id !== pendingId);
             updateAnalysisTable();
         }
         
