@@ -211,18 +211,31 @@ function updateOCRResults() {
             appState.unmatchedItems.forEach(item => {
                 html += `
                     <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center justify-between mb-3">
                             <span class="font-medium">${item.detectedText}</span>
                             <span class="status-badge status-pending">
                                 <span class="icon icon-clock"></span>
                                 Pending
                             </span>
                         </div>
-                        <div class="flex gap-2">
-                            <button onclick="dismissUnmatched(${item.id})" class="btn btn-sm btn-outline">
-                                <span class="icon icon-times"></span>
-                                Dismiss
-                            </button>
+                        <div class="space-y-2">
+                            <div class="table-search-container">
+                                <input type="text" 
+                                       id="search_${item.id}"
+                                       value="${item.detectedText}"
+                                       placeholder="Search for analysis name..."
+                                       class="table-search-input"
+                                       autocomplete="off"
+                                       oninput="handleTableSearchInput(${item.id}, this.value)"
+                                       onfocus="this.select(); handleTableSearchInput(${item.id}, this.value)">
+                                <div id="tableSuggestions_${item.id}" class="table-suggestions"></div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="dismissUnmatched(${item.id})" class="btn btn-sm btn-outline">
+                                    <span class="icon icon-times"></span>
+                                    Dismiss
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -263,6 +276,7 @@ function updateOCRToggleState() {
 
 // Search functionality
 let searchTimeout = null;
+let tableSearchTimeouts = {};
 
 function handleSearchInput(event) {
     const query = event.target.value.trim();
@@ -278,6 +292,111 @@ function handleSearchInput(event) {
     searchTimeout = setTimeout(() => {
         fetchSuggestions(query);
     }, 300);
+}
+
+// Table search functionality for unmatched items
+function handleTableSearchInput(pendingId, query) {
+    // Clear previous timeout for this specific search
+    if (tableSearchTimeouts[pendingId]) {
+        clearTimeout(tableSearchTimeouts[pendingId]);
+    }
+    
+    query = query.trim();
+    
+    if (query.length < 2) {
+        hideTableSuggestions(pendingId);
+        return;
+    }
+    
+    // Debounce suggestions request
+    tableSearchTimeouts[pendingId] = setTimeout(() => {
+        fetchTableSuggestions(pendingId, query);
+    }, 300);
+}
+
+async function fetchTableSuggestions(pendingId, query) {
+    try {
+        const response = await fetch(`${appState.apiBaseUrl}/analyses/suggestions?query=${encodeURIComponent(query)}&limit=8`);
+        const data = await response.json();
+        displayTableSuggestions(pendingId, data.suggestions || []);
+    } catch (error) {
+        console.error('Error fetching table suggestions:', error);
+        hideTableSuggestions(pendingId);
+    }
+}
+
+function displayTableSuggestions(pendingId, suggestions) {
+    const suggestionsDiv = document.getElementById(`tableSuggestions_${pendingId}`);
+    
+    if (!suggestionsDiv) {
+        return; // Element might not exist if table was updated
+    }
+    
+    if (suggestions.length === 0) {
+        hideTableSuggestions(pendingId);
+        return;
+    }
+    
+    let html = '';
+    suggestions.forEach(suggestion => {
+        html += `
+            <div class="table-suggestion-item" onclick="selectTableSuggestion(${pendingId}, '${suggestion.name.replace(/'/g, "\\'")}')">
+                <div class="font-medium">${suggestion.name}</div>
+                <div class="table-suggestion-category">${suggestion.category}</div>
+            </div>
+        `;
+    });
+    
+    suggestionsDiv.innerHTML = html;
+    suggestionsDiv.style.display = 'block';
+}
+
+function hideTableSuggestions(pendingId) {
+    const suggestionsDiv = document.getElementById(`tableSuggestions_${pendingId}`);
+    if (suggestionsDiv) {
+        suggestionsDiv.style.display = 'none';
+    }
+}
+
+async function selectTableSuggestion(pendingId, analysisName) {
+    try {
+        // Hide suggestions immediately
+        hideTableSuggestions(pendingId);
+        
+        const response = await fetch(`${appState.apiBaseUrl}/analyses/compare`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                analysis_names: [analysisName]
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.results && data.results.length > 0 && data.results[0].found !== false) {
+            const analysis = data.results[0];
+            
+            // Add to table if not already there
+            if (!appState.analysisTable.some(item => item.name === analysis.name)) {
+                appState.analysisTable.push(analysis);
+            }
+            
+            // Remove from unmatched items
+            appState.unmatchedItems = appState.unmatchedItems.filter(item => item.id !== pendingId);
+            
+            updateProviders();
+            updateAnalysisTable();
+            updateOCRResults();
+            showNotification(`Added "${analysis.name}" to comparison table`, 'success');
+        } else {
+            showNotification('Could not find the selected analysis in database', 'error');
+        }
+    } catch (error) {
+        console.error('Error adding analysis:', error);
+        showNotification('Error adding analysis: ' + error.message, 'error');
+    }
 }
 
 function handleSearchKeydown(event) {
@@ -407,8 +526,10 @@ function dismissPending(index) {
 }
 
 function dismissUnmatched(itemId) {
+    const item = appState.unmatchedItems.find(item => item.id === itemId);
     appState.unmatchedItems = appState.unmatchedItems.filter(item => item.id !== itemId);
     updateOCRResults();
+    showNotification(`Dismissed "${item?.detectedText || 'item'}"`, 'success');
 }
 
 function updateAnalysisTable() {
@@ -714,6 +835,14 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('click', function(e) {
         if (!e.target.closest('#searchInput') && !e.target.closest('#searchSuggestions')) {
             hideSuggestions();
+        }
+        
+        // Hide table suggestions when clicking outside any table search container
+        if (!e.target.closest('.table-search-container')) {
+            // Hide all table suggestions
+            appState.unmatchedItems.forEach(item => {
+                hideTableSuggestions(item.id);
+            });
         }
     });
     
