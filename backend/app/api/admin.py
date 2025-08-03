@@ -6,7 +6,7 @@ import json
 import os
 from datetime import datetime
 
-from ..config import app_logger
+from ..config import app_logger, settings
 from ..models import MedicalAnalysis, PriceInfo, ProviderPrices, ImportedData
 
 router = APIRouter()
@@ -237,15 +237,30 @@ async def load_sample_data(provider: str):
         raise HTTPException(status_code=400, detail="Invalid provider. Must be 'reginamaria' or 'medlife'")
     
     try:
-        # Construct path to sample CSV file  
-        # admin.py is at backend/app/api/admin.py, so we need to go up 4 levels to reach project root
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        data_dir = os.path.join(project_root, "data")
-        csv_file_path = os.path.join(data_dir, f"sample_analyses_{provider}.csv")
+        # Use the smart data path resolution from config
+        data_dir = settings.resolved_data_path
+        csv_file_path = data_dir / f"sample_analyses_{provider}.csv"
         
+        app_logger.info(f"Data path resolution: resolved to {data_dir}")
         app_logger.debug(f"Looking for sample CSV at: {csv_file_path}")
+        app_logger.debug(f"Data directory exists: {data_dir.exists()}")
         
-        if not os.path.exists(csv_file_path):
+        if not csv_file_path.exists():
+            app_logger.warning(f"Sample data file not found: {csv_file_path}")
+            
+            if data_dir.exists():
+                try:
+                    available_files = [f.name for f in data_dir.iterdir() if f.is_file()]
+                    app_logger.warning(f"Available files in data directory {data_dir}: {available_files}")
+                except Exception as e:
+                    app_logger.warning(f"Could not list files in data directory: {e}")
+            else:
+                app_logger.warning(f"Data directory {data_dir} does not exist")
+                # Debug path resolution
+                from pathlib import Path
+                app_logger.debug(f"Checking Docker path /app/data: exists={Path('/app/data').exists()}")
+                app_logger.debug(f"Current file location: {Path(__file__).parent}")
+                
             raise HTTPException(status_code=404, detail=f"Sample data file not found for provider {provider}")
         
         # Read and parse the CSV file
