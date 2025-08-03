@@ -101,25 +101,25 @@
                             OCR Processing Results
                         </h4>
                         <button id="ocrToggleBtn" onclick="toggleOCRResults()" class="btn btn-sm btn-outline">
-                            <span id="ocrToggleIcon" class="icon icon-chevron-up"></span>
-                            <span id="ocrToggleText">Collapse</span>
+                            <span id="ocrToggleIcon" class="icon icon-chevron-down"></span>
+                            <span id="ocrToggleText">Expand</span>
                         </button>
                     </div>
-                    <div id="ocrResultsContent" class="space-y-3 hidden">
+                    <div id="ocrResultsContent" class="space-y-4 hidden">
                         <div id="ocrResultsList" class="space-y-3">
                             <!-- Results will be populated here -->
                         </div>
-                    </div>
-                </div>
-
-                <!-- Unmatched Items -->
-                <div id="unmatchedItems" class="mt-6 hidden">
-                    <h4 class="font-semibold mb-3 flex items-center gap-2">
-                        <span class="icon icon-warning text-yellow-600"></span>
-                        Items Requiring Manual Resolution
-                    </h4>
-                    <div id="unmatchedItemsList" class="space-y-3">
-                        <!-- Unmatched items will be populated here -->
+                        
+                        <!-- Unmatched Items (inside collapsible content) -->
+                        <div id="unmatchedItems" class="hidden">
+                            <h5 class="font-semibold mb-3 flex items-center gap-2">
+                                <span class="icon icon-warning text-yellow-600"></span>
+                                Items Requiring Manual Resolution
+                            </h5>
+                            <div id="unmatchedItemsList" class="space-y-3">
+                                <!-- Unmatched items will be populated here -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

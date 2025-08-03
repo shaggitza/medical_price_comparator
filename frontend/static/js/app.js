@@ -174,60 +174,69 @@ function updateOCRResults() {
     const unmatchedDiv = document.getElementById('unmatchedItems');
     const unmatchedList = document.getElementById('unmatchedItemsList');
     
-    // Update matched results
-    if (appState.ocrResults.length > 0) {
-        let html = '';
-        appState.ocrResults.forEach(result => {
-            html += `
-                <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <span class="font-medium">${result.name}</span>
-                            <span class="text-sm text-gray-600 ml-2">${result.category || ''}</span>
-                        </div>
-                        <span class="status-badge status-success">
-                            <span class="icon icon-check"></span>
-                            Matched
-                        </span>
-                    </div>
-                </div>
-            `;
-        });
-        resultsList.innerHTML = html;
+    const hasOCRResults = appState.ocrResults.length > 0;
+    const hasUnmatchedItems = appState.unmatchedItems.length > 0;
+    
+    // Show OCR section if there are any results (matched or unmatched)
+    if (hasOCRResults || hasUnmatchedItems) {
         resultsDiv.classList.remove('hidden');
+        
+        // Update matched results
+        if (hasOCRResults) {
+            let html = '';
+            appState.ocrResults.forEach(result => {
+                html += `
+                    <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="font-medium">${result.name}</span>
+                                <span class="text-sm text-gray-600 ml-2">${result.category || ''}</span>
+                            </div>
+                            <span class="status-badge status-success">
+                                <span class="icon icon-check"></span>
+                                Matched
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+            resultsList.innerHTML = html;
+        } else {
+            resultsList.innerHTML = '';
+        }
+        
+        // Update unmatched items
+        if (hasUnmatchedItems) {
+            let html = '';
+            appState.unmatchedItems.forEach(item => {
+                html += `
+                    <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-medium">${item.detectedText}</span>
+                            <span class="status-badge status-pending">
+                                <span class="icon icon-clock"></span>
+                                Pending
+                            </span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="dismissUnmatched(${item.id})" class="btn btn-sm btn-outline">
+                                <span class="icon icon-times"></span>
+                                Dismiss
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            unmatchedList.innerHTML = html;
+            unmatchedDiv.classList.remove('hidden');
+        } else {
+            unmatchedDiv.classList.add('hidden');
+        }
         
         // Update toggle button state
         updateOCRToggleState();
     } else {
         resultsDiv.classList.add('hidden');
-    }
-    
-    // Update unmatched items
-    if (appState.unmatchedItems.length > 0) {
-        let html = '';
-        appState.unmatchedItems.forEach(item => {
-            html += `
-                <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="font-medium">${item.detectedText}</span>
-                        <span class="status-badge status-pending">
-                            <span class="icon icon-clock"></span>
-                            Pending
-                        </span>
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="dismissUnmatched(${item.id})" class="btn btn-sm btn-outline">
-                            <span class="icon icon-times"></span>
-                            Dismiss
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-        unmatchedList.innerHTML = html;
-        unmatchedDiv.classList.remove('hidden');
-    } else {
-        unmatchedDiv.classList.add('hidden');
     }
 }
 
