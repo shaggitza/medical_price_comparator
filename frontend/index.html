@@ -106,6 +106,44 @@
             border-radius: 4px; 
         }
         .admin-link:hover { background: #218838; }
+        .pending-row { 
+            background-color: #fff3cd !important; 
+            border-left: 4px solid #ffc107; 
+        }
+        .pending-row td { 
+            vertical-align: middle; 
+        }
+        .pending-text { 
+            font-style: italic; 
+            color: #856404; 
+        }
+        .resolution-dropdown { 
+            width: 100%; 
+            padding: 5px; 
+            border: 1px solid #ced4da; 
+            border-radius: 3px; 
+        }
+        .resolve-btn { 
+            background: #28a745; 
+            color: white; 
+            border: none; 
+            padding: 4px 8px; 
+            cursor: pointer; 
+            border-radius: 3px; 
+            font-size: 0.8em; 
+            margin-right: 5px; 
+        }
+        .resolve-btn:hover { background: #218838; }
+        .dismiss-btn { 
+            background: #6c757d; 
+            color: white; 
+            border: none; 
+            padding: 4px 8px; 
+            cursor: pointer; 
+            border-radius: 3px; 
+            font-size: 0.8em; 
+        }
+        .dismiss-btn:hover { background: #5a6268; }
     </style>
 </head>
 <body>
@@ -155,6 +193,7 @@
         
         // Global state
         let analysisTable = [];
+        let pendingItems = []; // Store unmatched OCR items
         let suggestionsTimeout = null;
         
         // Initialize event listeners
@@ -295,19 +334,25 @@
         function updateAnalysisTable() {
             const tableDiv = document.getElementById('analysisTable');
             
-            if (analysisTable.length === 0) {
+            if (analysisTable.length === 0 && pendingItems.length === 0) {
                 tableDiv.innerHTML = '<p>Add analyses using the search box above to start comparing prices.</p>';
                 document.getElementById('totalsSection').style.display = 'none';
                 return;
             }
             
-            // Get all unique providers
+            // Get all unique providers from confirmed analyses
             const providers = new Set();
             analysisTable.forEach(analysis => {
                 Object.keys(analysis.prices || {}).forEach(provider => {
                     providers.add(provider);
                 });
             });
+            
+            // If no providers yet, add some default ones for display
+            if (providers.size === 0) {
+                providers.add('reginamaria');
+                providers.add('medlife');
+            }
             
             let html = '<table class="analysis-table">';
             html += '<thead class="table-header"><tr><th>Analysis</th>';
@@ -318,6 +363,7 @@
             
             html += '<th>Actions</th></tr></thead><tbody>';
             
+            // Add confirmed analyses
             analysisTable.forEach((analysis, index) => {
                 html += `<tr><td><strong>${analysis.name}</strong>`;
                 if (analysis.alternative_names && analysis.alternative_names.length > 0) {
@@ -350,10 +396,33 @@
                 html += '</tr>';
             });
             
+            // Add pending items that need resolution
+            pendingItems.forEach((pending, index) => {
+                html += `<tr class="pending-row"><td>`;
+                html += `<span class="pending-text">📋 Detected: "${pending.detectedText}"</span><br>`;
+                html += `<small>OCR detected item - needs manual resolution</small>`;
+                html += '</td>';
+                
+                // Span across provider columns with resolution dropdown
+                html += `<td colspan="${providers.size}">`;
+                html += `<select class="resolution-dropdown" id="resolve_${pending.id}" onchange="loadSuggestions('${pending.detectedText}', ${pending.id})">`;
+                html += `<option value="">Choose an action...</option>`;
+                html += `<option value="search">Search for similar analysis</option>`;
+                html += `<option value="manual">Enter manually in search box</option>`;
+                html += `</select>`;
+                html += `<div id="suggestions_${pending.id}" style="margin-top: 10px; display: none;"></div>`;
+                html += '</td>';
+                
+                html += `<td>`;
+                html += `<button class="dismiss-btn" onclick="dismissPendingItem(${index})">Dismiss</button>`;
+                html += '</td>';
+                html += '</tr>';
+            });
+            
             html += '</tbody></table>';
             tableDiv.innerHTML = html;
             
-            // Update totals
+            // Update totals (only for confirmed analyses)
             updateTotals(providers);
         }
         
@@ -450,6 +519,99 @@
             }
         }
         
+        function dismissPendingItem(index) {
+            pendingItems.splice(index, 1);
+            updateAnalysisTable();
+        }
+        
+        async function loadSuggestions(detectedText, pendingId) {
+            const dropdown = document.getElementById(`resolve_${pendingId}`);
+            const suggestionsDiv = document.getElementById(`suggestions_${pendingId}`);
+            
+            if (dropdown.value === 'search') {
+                // Show loading
+                suggestionsDiv.style.display = 'block';
+                suggestionsDiv.innerHTML = '<p>Searching for similar analyses...</p>';
+                
+                try {
+                    // Search for suggestions based on detected text
+                    const response = await fetch(`${API_BASE_URL}/analyses/suggestions?query=${encodeURIComponent(detectedText)}&limit=5`);
+                    const data = await response.json();
+                    
+                    if (data.suggestions && data.suggestions.length > 0) {
+                        let html = '<p><strong>Select a matching analysis:</strong></p>';
+                        data.suggestions.forEach(suggestion => {
+                            html += `
+                                <div style="margin: 5px 0;">
+                                    <button class="resolve-btn" onclick="resolvePendingItem(${pendingId}, '${suggestion.name}')">
+                                        Select: ${suggestion.name}
+                                    </button>
+                                    <small style="color: #666; margin-left: 10px;">(${suggestion.category})</small>
+                                </div>
+                            `;
+                        });
+                        html += '<p><small>Or dismiss this item if none of these match.</small></p>';
+                        suggestionsDiv.innerHTML = html;
+                    } else {
+                        suggestionsDiv.innerHTML = '<p>No similar analyses found. Try entering the analysis manually in the search box above, or dismiss this item.</p>';
+                    }
+                } catch (error) {
+                    suggestionsDiv.innerHTML = '<p>Error searching for suggestions. Try entering the analysis manually.</p>';
+                }
+            } else if (dropdown.value === 'manual') {
+                suggestionsDiv.style.display = 'block';
+                suggestionsDiv.innerHTML = `
+                    <p><strong>Manual Entry:</strong></p>
+                    <p>Copy this text and search manually: <code>${detectedText}</code></p>
+                    <p>Use the search box at the top of the page to find and add the correct analysis.</p>
+                    <button class="dismiss-btn" onclick="dismissPendingItemById(${pendingId})">Dismiss this item</button>
+                `;
+            } else {
+                suggestionsDiv.style.display = 'none';
+            }
+        }
+        
+        async function resolvePendingItem(pendingId, analysisName) {
+            try {
+                // Try to add the selected analysis
+                const response = await fetch(`${API_BASE_URL}/analyses/compare`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        analysis_names: [analysisName]
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.results && data.results.length > 0 && data.results[0].found !== false) {
+                    const analysis = data.results[0];
+                    
+                    // Add to table if not already there
+                    if (!analysisTable.some(item => item.name === analysis.name)) {
+                        analysisTable.push(analysis);
+                    }
+                    
+                    // Remove from pending items
+                    pendingItems = pendingItems.filter(item => item.id !== pendingId);
+                    
+                    updateAnalysisTable();
+                    alert(`Successfully added "${analysis.name}" to comparison table!`);
+                } else {
+                    alert('Could not find the selected analysis in database.');
+                }
+            } catch (error) {
+                alert('Error adding analysis: ' + error.message);
+            }
+        }
+        
+        function dismissPendingItemById(pendingId) {
+            pendingItems = pendingItems.filter(item => item.id !== pendingId);
+            updateAnalysisTable();
+        }
+        
         async function processOCRResults(detectedAnalyses) {
             const ocrResults = document.getElementById('ocrResults');
             let matched = [];
@@ -497,22 +659,27 @@
                 html += '</ul>';
             }
             
-            // Show unmatched analyses for manual selection
+            // Add unmatched items to pending resolution in the table
             if (unmatched.length > 0) {
-                html += '<div class="ocr-manual-match">';
-                html += '<h5>⚠️ Could not automatically match these items:</h5>';
-                html += '<p>Please review these detected texts and manually add the ones that are medical analyses:</p>';
+                html += '<h5>⚠️ Unmatched Items Added to Table:</h5>';
+                html += '<p>The following items were detected but could not be automatically matched. They have been added to the comparison table where you can resolve them using the dropdown options:</p>';
+                html += '<ul>';
                 
                 unmatched.forEach((item, index) => {
-                    html += `
-                        <div class="unmatched-item">
-                            <strong>Detected text:</strong> "${item}"<br>
-                            <small>If this is a medical analysis, try searching for it manually in the search box above, or try alternative names/spellings.</small>
-                        </div>
-                    `;
+                    html += `<li><strong>"${item}"</strong> - Review in table below</li>`;
+                    
+                    // Add to pending items if not already there
+                    if (!pendingItems.some(pending => pending.detectedText === item)) {
+                        pendingItems.push({
+                            detectedText: item,
+                            id: Date.now() + index, // Unique ID
+                            suggestions: [] // Will be populated when dropdown is opened
+                        });
+                    }
                 });
                 
-                html += '</div>';
+                html += '</ul>';
+                html += '<p><strong>💡 Tip:</strong> Use the dropdown in each unmatched row to search for similar analyses or dismiss items that are not medical tests.</p>';
             }
             
             ocrResults.innerHTML = html;
