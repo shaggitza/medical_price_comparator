@@ -9,6 +9,51 @@ from ..models import AnalysisQuery, MedicalAnalysis
 router = APIRouter()
 
 
+@router.get("/suggestions")
+async def get_suggestions(
+    query: str = Query(..., description="Search term for analysis suggestions"),
+    limit: int = Query(10, description="Maximum number of suggestions")
+):
+    """Get search suggestions for medical analyses"""
+    app_logger.info(f"Getting suggestions for query: '{query}', limit: {limit}")
+    
+    if limit <= 0 or limit > 20:
+        app_logger.warning(f"Invalid limit requested: {limit}")
+        raise HTTPException(status_code=422, detail="Limit must be between 1 and 20")
+    
+    if len(query.strip()) < 2:
+        return {"suggestions": []}
+    
+    try:
+        # Create case-insensitive regex pattern
+        pattern = re.compile(query, re.IGNORECASE)
+        app_logger.debug(f"Using regex pattern: {pattern.pattern}")
+        
+        # Search in name and alternative_names fields
+        results = await MedicalAnalysis.find({
+            "$or": [
+                {"name": {"$regex": pattern}},
+                {"alternative_names": {"$regex": pattern}}
+            ]
+        }).limit(limit).to_list()
+        
+        # Convert to simple suggestion format
+        suggestions = []
+        for analysis in results:
+            suggestions.append({
+                "name": analysis.name,
+                "category": analysis.category,
+                "alternative_names": analysis.alternative_names
+            })
+        
+        app_logger.info(f"Found {len(suggestions)} suggestions for query '{query}'")
+        return {"suggestions": suggestions}
+        
+    except Exception as e:
+        app_logger.error(f"Error getting suggestions: {e}")
+        return {"suggestions": [], "error": str(e)}
+
+
 @router.get("/search")
 async def search_analyses(
     query: str = Query(..., description="Search term for analysis names"),

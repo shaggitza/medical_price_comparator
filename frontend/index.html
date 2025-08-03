@@ -8,7 +8,84 @@
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
         .container { max-width: 1200px; margin: 0 auto; }
         .header { text-align: center; margin-bottom: 30px; }
-        .search-section { margin-bottom: 30px; }
+        .search-section { margin-bottom: 30px; position: relative; }
+        .search-suggestions { 
+            position: absolute; 
+            top: 100%; 
+            left: 0; 
+            right: 0; 
+            background: white; 
+            border: 1px solid #ddd; 
+            border-top: none; 
+            max-height: 200px; 
+            overflow-y: auto; 
+            z-index: 1000; 
+            display: none; 
+        }
+        .suggestion-item { 
+            padding: 10px; 
+            cursor: pointer; 
+            border-bottom: 1px solid #eee; 
+        }
+        .suggestion-item:hover { background: #f5f5f5; }
+        .suggestion-category { 
+            font-size: 0.8em; 
+            color: #666; 
+            font-style: italic; 
+        }
+        .analysis-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 20px; 
+            background: white; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+        }
+        .table-header { 
+            background: #f8f9fa; 
+            font-weight: bold; 
+        }
+        .remove-btn { 
+            background: #dc3545; 
+            color: white; 
+            border: none; 
+            padding: 4px 8px; 
+            cursor: pointer; 
+            border-radius: 3px; 
+            font-size: 0.8em; 
+        }
+        .remove-btn:hover { background: #c82333; }
+        .table-section { 
+            margin-top: 30px; 
+            padding: 20px; 
+            background: #f8f9fa; 
+            border-radius: 8px; 
+        }
+        .totals-section { 
+            margin-top: 20px; 
+            padding: 15px; 
+            background: #e9ecef; 
+            border-radius: 5px; 
+        }
+        .total-row { 
+            display: flex; 
+            justify-content: space-between; 
+            margin: 5px 0; 
+            font-weight: bold; 
+        }
+        .ocr-manual-match { 
+            margin-top: 20px; 
+            padding: 15px; 
+            background: #fff3cd; 
+            border-left: 4px solid #ffc107; 
+            border-radius: 4px; 
+        }
+        .unmatched-item { 
+            margin: 10px 0; 
+            padding: 10px; 
+            background: white; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+        }
         .upload-section { margin-bottom: 30px; padding: 20px; border: 2px dashed #ccc; }
         .results-section { margin-top: 30px; }
         input, button { padding: 10px; margin: 5px; }
@@ -48,117 +125,200 @@
         </div>
         
         <div class="search-section">
-            <h3>🔍 Search Analyses</h3>
-            <input type="text" id="searchInput" placeholder="Enter analysis names (comma separated)" style="width: 70%;">
-            <button onclick="searchAnalyses()">Search Prices</button>
-            <div id="searchLoading" class="loading">Searching...</div>
+            <h3>🔍 Add Analysis to Comparison Table</h3>
+            <div style="position: relative;">
+                <input type="text" id="searchInput" placeholder="Start typing analysis name..." style="width: 70%;" autocomplete="off">
+                <button onclick="addAnalysisToTable()">Add to Table</button>
+                <div id="searchSuggestions" class="search-suggestions"></div>
+            </div>
+        </div>
+        
+        <div class="table-section">
+            <h3>📊 Analysis Comparison Table</h3>
+            <div id="analysisTable">
+                <p>Add analyses using the search box above to start comparing prices.</p>
+            </div>
+            <div id="totalsSection" class="totals-section" style="display: none;">
+                <h4>💰 Price Totals</h4>
+                <div id="totalsList"></div>
+            </div>
         </div>
         
         <div class="results-section">
-            <div id="results"></div>
+            <div id="ocrResults"></div>
         </div>
     </div>
     
     <script>
         // Configuration
-        const API_BASE_URL = '/api/v1';
+        const API_BASE_URL = 'http://localhost:8001/api/v1';
         
-        async function processOCR() {
-            const fileInput = document.getElementById('imageFile');
-            const loading = document.getElementById('ocrLoading');
+        // Global state
+        let analysisTable = [];
+        let suggestionsTimeout = null;
+        
+        // Initialize event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', handleSearchInput);
+            searchInput.addEventListener('keydown', handleSearchKeydown);
             
-            if (!fileInput.files[0]) {
-                alert('Please select an image file');
+            // Hide suggestions when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.search-section')) {
+                    hideSuggestions();
+                }
+            });
+        });
+        
+        // Search input handling with suggestions
+        function handleSearchInput(event) {
+            const query = event.target.value.trim();
+            
+            // Clear previous timeout
+            if (suggestionsTimeout) {
+                clearTimeout(suggestionsTimeout);
+            }
+            
+            if (query.length < 2) {
+                hideSuggestions();
                 return;
             }
             
-            loading.style.display = 'block';
-            
-            const formData = new FormData();
-            formData.append('image', fileInput.files[0]);
-            
-            try {
-                const response = await fetch(`${API_BASE_URL}/ocr/process`, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const result = await response.json();
-                
-                if (result.analyses && result.analyses.length > 0) {
-                    document.getElementById('searchInput').value = result.analyses.join(', ');
-                    await searchAnalyses();
-                } else {
-                    alert('No analyses detected in the image');
-                }
-            } catch (error) {
-                alert('Error processing image: ' + error.message);
-            } finally {
-                loading.style.display = 'none';
+            // Debounce suggestions request
+            suggestionsTimeout = setTimeout(() => {
+                fetchSuggestions(query);
+            }, 300);
+        }
+        
+        function handleSearchKeydown(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                addAnalysisToTable();
             }
         }
         
-        async function searchAnalyses() {
-            const searchInput = document.getElementById('searchInput');
-            const loading = document.getElementById('searchLoading');
-            const results = document.getElementById('results');
+        async function fetchSuggestions(query) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/analyses/suggestions?query=${encodeURIComponent(query)}&limit=8`);
+                const data = await response.json();
+                displaySuggestions(data.suggestions || []);
+            } catch (error) {
+                console.error('Error fetching suggestions:', error);
+                hideSuggestions();
+            }
+        }
+        
+        function displaySuggestions(suggestions) {
+            const suggestionsDiv = document.getElementById('searchSuggestions');
             
-            if (!searchInput.value.trim()) {
-                alert('Please enter analysis names');
+            if (suggestions.length === 0) {
+                hideSuggestions();
                 return;
             }
             
-            loading.style.display = 'block';
+            let html = '';
+            suggestions.forEach(suggestion => {
+                html += `
+                    <div class="suggestion-item" onclick="selectSuggestion('${suggestion.name}')">
+                        <div>${suggestion.name}</div>
+                        <div class="suggestion-category">${suggestion.category}</div>
+                    </div>
+                `;
+            });
             
-            const analyses = searchInput.value.split(',').map(s => s.trim()).filter(s => s);
+            suggestionsDiv.innerHTML = html;
+            suggestionsDiv.style.display = 'block';
+        }
+        
+        function hideSuggestions() {
+            const suggestionsDiv = document.getElementById('searchSuggestions');
+            suggestionsDiv.style.display = 'none';
+        }
+        
+        function selectSuggestion(analysisName) {
+            document.getElementById('searchInput').value = analysisName;
+            hideSuggestions();
+            addAnalysisToTable();
+        }
+        
+        async function addAnalysisToTable() {
+            const searchInput = document.getElementById('searchInput');
+            const analysisName = searchInput.value.trim();
+            
+            if (!analysisName) {
+                alert('Please enter an analysis name');
+                return;
+            }
+            
+            // Check if already in table
+            if (analysisTable.some(item => item.name.toLowerCase() === analysisName.toLowerCase())) {
+                alert('This analysis is already in the table');
+                searchInput.value = '';
+                hideSuggestions();
+                return;
+            }
             
             try {
+                // Search for the analysis
                 const response = await fetch(`${API_BASE_URL}/analyses/compare`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        analysis_names: analyses
+                        analysis_names: [analysisName]
                     })
                 });
                 
                 const data = await response.json();
-                displayResults(data);
+                
+                if (data.results && data.results.length > 0) {
+                    const analysis = data.results[0];
+                    analysisTable.push(analysis);
+                    searchInput.value = '';
+                    hideSuggestions();
+                    updateAnalysisTable();
+                } else {
+                    alert('Analysis not found in database');
+                }
             } catch (error) {
-                results.innerHTML = '<p>Error searching analyses: ' + error.message + '</p>';
-            } finally {
-                loading.style.display = 'none';
+                alert('Error adding analysis: ' + error.message);
             }
         }
         
-        function displayResults(data) {
-            const results = document.getElementById('results');
+        function removeAnalysisFromTable(index) {
+            analysisTable.splice(index, 1);
+            updateAnalysisTable();
+        }
+        
+        function updateAnalysisTable() {
+            const tableDiv = document.getElementById('analysisTable');
             
-            if (!data.results || data.results.length === 0) {
-                results.innerHTML = '<p>No results found for the specified analyses.</p>';
+            if (analysisTable.length === 0) {
+                tableDiv.innerHTML = '<p>Add analyses using the search box above to start comparing prices.</p>';
+                document.getElementById('totalsSection').style.display = 'none';
                 return;
             }
             
-            let html = '<h3>💰 Price Comparison Results</h3>';
-            html += '<table class="price-table">';
-            html += '<thead><tr><th>Analysis</th>';
-            
             // Get all unique providers
             const providers = new Set();
-            data.results.forEach(analysis => {
+            analysisTable.forEach(analysis => {
                 Object.keys(analysis.prices || {}).forEach(provider => {
                     providers.add(provider);
                 });
             });
             
+            let html = '<table class="analysis-table">';
+            html += '<thead class="table-header"><tr><th>Analysis</th>';
+            
             Array.from(providers).forEach(provider => {
                 html += `<th>${provider.charAt(0).toUpperCase() + provider.slice(1)}</th>`;
             });
             
-            html += '</tr></thead><tbody>';
+            html += '<th>Actions</th></tr></thead><tbody>';
             
-            data.results.forEach(analysis => {
+            analysisTable.forEach((analysis, index) => {
                 html += `<tr><td><strong>${analysis.name}</strong>`;
                 if (analysis.alternative_names && analysis.alternative_names.length > 0) {
                     html += `<br><small>(${analysis.alternative_names.join(', ')})</small>`;
@@ -186,11 +346,177 @@
                     html += '</td>';
                 });
                 
+                html += `<td><button class="remove-btn" onclick="removeAnalysisFromTable(${index})">Remove</button></td>`;
                 html += '</tr>';
             });
             
             html += '</tbody></table>';
-            results.innerHTML = html;
+            tableDiv.innerHTML = html;
+            
+            // Update totals
+            updateTotals(providers);
+        }
+        
+        function updateTotals(providers) {
+            const totalsSection = document.getElementById('totalsSection');
+            const totalsList = document.getElementById('totalsList');
+            
+            if (analysisTable.length === 0) {
+                totalsSection.style.display = 'none';
+                return;
+            }
+            
+            let totalsHtml = '';
+            
+            Array.from(providers).forEach(provider => {
+                const totals = {
+                    normal: 0,
+                    premium: 0,
+                    subscription: 0
+                };
+                
+                let hasData = false;
+                
+                analysisTable.forEach(analysis => {
+                    const providerPrices = analysis.prices && analysis.prices[provider];
+                    if (providerPrices) {
+                        if (providerPrices.normal) {
+                            totals.normal += providerPrices.normal.amount;
+                            hasData = true;
+                        }
+                        if (providerPrices.premium) {
+                            totals.premium += providerPrices.premium.amount;
+                            hasData = true;
+                        }
+                        if (providerPrices.subscription) {
+                            totals.subscription += providerPrices.subscription.amount;
+                            hasData = true;
+                        }
+                    }
+                });
+                
+                if (hasData) {
+                    totalsHtml += `<h5>${provider.charAt(0).toUpperCase() + provider.slice(1)} Totals:</h5>`;
+                    if (totals.normal > 0) {
+                        totalsHtml += `<div class="total-row"><span>Normal Plan:</span><span>${totals.normal.toFixed(2)} RON</span></div>`;
+                    }
+                    if (totals.premium > 0) {
+                        totalsHtml += `<div class="total-row"><span>Premium Plan:</span><span>${totals.premium.toFixed(2)} RON</span></div>`;
+                    }
+                    if (totals.subscription > 0) {
+                        totalsHtml += `<div class="total-row"><span>Subscription Plan:</span><span>${totals.subscription.toFixed(2)} RON</span></div>`;
+                    }
+                    totalsHtml += '<br>';
+                }
+            });
+            
+            totalsList.innerHTML = totalsHtml;
+            totalsSection.style.display = 'block';
+        }
+        
+        async function processOCR() {
+            const fileInput = document.getElementById('imageFile');
+            const loading = document.getElementById('ocrLoading');
+            const ocrResults = document.getElementById('ocrResults');
+            
+            if (!fileInput.files[0]) {
+                alert('Please select an image file');
+                return;
+            }
+            
+            loading.style.display = 'block';
+            ocrResults.innerHTML = '';
+            
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/ocr/process`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.analyses && result.analyses.length > 0) {
+                    await processOCRResults(result.analyses);
+                } else {
+                    ocrResults.innerHTML = '<div class="ocr-manual-match"><h4>⚠️ No analyses detected</h4><p>The OCR could not detect any medical analysis names in the image. Please try a clearer image or add analyses manually using the search box above.</p></div>';
+                }
+            } catch (error) {
+                ocrResults.innerHTML = '<div class="ocr-manual-match"><h4>❌ Error processing image</h4><p>' + error.message + '</p></div>';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+        
+        async function processOCRResults(detectedAnalyses) {
+            const ocrResults = document.getElementById('ocrResults');
+            let matched = [];
+            let unmatched = [];
+            
+            // Try to match each detected analysis
+            for (const analysisName of detectedAnalyses) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/analyses/compare`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            analysis_names: [analysisName]
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.results && data.results.length > 0 && data.results[0].found !== false) {
+                        matched.push(data.results[0]);
+                    } else {
+                        unmatched.push(analysisName);
+                    }
+                } catch (error) {
+                    unmatched.push(analysisName);
+                }
+            }
+            
+            let html = '<h4>🔍 OCR Processing Results</h4>';
+            
+            // Show matched analyses
+            if (matched.length > 0) {
+                html += '<h5>✅ Automatically Matched Analyses:</h5>';
+                html += '<p>These analyses were automatically found in our database and added to your comparison table:</p>';
+                html += '<ul>';
+                matched.forEach(analysis => {
+                    html += `<li><strong>${analysis.name}</strong> - ${analysis.category}</li>`;
+                    // Add to table if not already there
+                    if (!analysisTable.some(item => item.name === analysis.name)) {
+                        analysisTable.push(analysis);
+                    }
+                });
+                html += '</ul>';
+            }
+            
+            // Show unmatched analyses for manual selection
+            if (unmatched.length > 0) {
+                html += '<div class="ocr-manual-match">';
+                html += '<h5>⚠️ Could not automatically match these items:</h5>';
+                html += '<p>Please review these detected texts and manually add the ones that are medical analyses:</p>';
+                
+                unmatched.forEach((item, index) => {
+                    html += `
+                        <div class="unmatched-item">
+                            <strong>Detected text:</strong> "${item}"<br>
+                            <small>If this is a medical analysis, try searching for it manually in the search box above, or try alternative names/spellings.</small>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            }
+            
+            ocrResults.innerHTML = html;
+            updateAnalysisTable();
         }
     </script>
 </body>
