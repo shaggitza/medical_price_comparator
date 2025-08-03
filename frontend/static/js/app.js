@@ -14,7 +14,8 @@ let appState = {
     suggestions: [],
     showSuggestions: false,
     searchQuery: '',
-    apiBaseUrl: '/api/v1'
+    apiBaseUrl: '/api/v1',
+    ocrResultsCollapsed: true
 };
 
 // File handling functions
@@ -194,6 +195,9 @@ function updateOCRResults() {
         });
         resultsList.innerHTML = html;
         resultsDiv.classList.remove('hidden');
+        
+        // Update toggle button state
+        updateOCRToggleState();
     } else {
         resultsDiv.classList.add('hidden');
     }
@@ -224,6 +228,27 @@ function updateOCRResults() {
         unmatchedDiv.classList.remove('hidden');
     } else {
         unmatchedDiv.classList.add('hidden');
+    }
+}
+
+function toggleOCRResults() {
+    appState.ocrResultsCollapsed = !appState.ocrResultsCollapsed;
+    updateOCRToggleState();
+}
+
+function updateOCRToggleState() {
+    const content = document.getElementById('ocrResultsContent');
+    const toggleIcon = document.getElementById('ocrToggleIcon');
+    const toggleText = document.getElementById('ocrToggleText');
+    
+    if (appState.ocrResultsCollapsed) {
+        content.classList.add('hidden');
+        toggleIcon.className = 'icon icon-chevron-down';
+        toggleText.textContent = 'Expand';
+    } else {
+        content.classList.remove('hidden');
+        toggleIcon.className = 'icon icon-chevron-up';
+        toggleText.textContent = 'Collapse';
     }
 }
 

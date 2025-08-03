@@ -275,6 +275,8 @@ nav {
 .icon-cloud::before { content: "☁️"; }
 .icon-clock::before { content: "🕒"; }
 .icon-info::before { content: "ℹ️"; }
+.icon-chevron-up::before { content: "🔼"; }
+.icon-chevron-down::before { content: "🔽"; }
 
 /* Enhanced container styling */
 .container {

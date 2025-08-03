@@ -95,12 +95,20 @@
                 
                 <!-- OCR Results -->
                 <div id="ocrResults" class="mt-6 hidden">
-                    <h4 class="font-semibold mb-3 flex items-center gap-2">
-                        <span class="icon icon-check text-green-600"></span>
-                        OCR Processing Results
-                    </h4>
-                    <div id="ocrResultsList" class="space-y-3">
-                        <!-- Results will be populated here -->
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="font-semibold flex items-center gap-2">
+                            <span class="icon icon-check text-green-600"></span>
+                            OCR Processing Results
+                        </h4>
+                        <button id="ocrToggleBtn" onclick="toggleOCRResults()" class="btn btn-sm btn-outline">
+                            <span id="ocrToggleIcon" class="icon icon-chevron-up"></span>
+                            <span id="ocrToggleText">Collapse</span>
+                        </button>
+                    </div>
+                    <div id="ocrResultsContent" class="space-y-3 hidden">
+                        <div id="ocrResultsList" class="space-y-3">
+                            <!-- Results will be populated here -->
+                        </div>
                     </div>
                 </div>
 
