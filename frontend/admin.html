@@ -110,6 +110,14 @@
             border: 1px solid #f5c6cb;
             color: #721c24;
         }
+        
+        .success-note {
+            font-weight: bold;
+            margin-top: 10px;
+            padding: 8px;
+            background: rgba(21, 87, 36, 0.1);
+            border-radius: 4px;
+        }
         .loading {
             display: none;
             text-align: center;
@@ -425,19 +433,46 @@
             result.innerHTML = '';
             
             try {
-                // In a real implementation, you would fetch the sample CSV from the server
-                // For now, we'll simulate loading sample data
-                const filename = `sample_analyses_${provider}.csv`;
+                const response = await fetch(`/api/v1/admin/load-sample-data/${provider}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
                 
+                const data = await response.json();
+                
+                if (response.ok) {
+                    result.innerHTML = `
+                        <div class="result success">
+                            <h4>✅ Sample Data Loaded Successfully</h4>
+                            <p><strong>Provider:</strong> ${data.provider}</p>
+                            <p><strong>Records Processed:</strong> ${data.total_records}</p>
+                            <p><strong>Successfully Imported:</strong> ${data.successful_imports}</p>
+                            ${data.errors > 0 ? `<p><strong>Errors:</strong> ${data.errors}</p>` : ''}
+                            ${data.error_details && data.error_details.length > 0 ? 
+                                `<details><summary>Error Details</summary><ul>${data.error_details.map(err => `<li>${err}</li>`).join('')}</ul></details>` : 
+                                ''
+                            }
+                            <p class="success-note">Sample data has been loaded into the database and is now available for search and comparison.</p>
+                        </div>
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <div class="result error">
+                            <h4>❌ Failed to Load Sample Data</h4>
+                            <p>${data.detail || 'Unknown error occurred'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
                 result.innerHTML = `
-                    <div class="result success">
-                        <h4>Sample Data Available</h4>
-                        <p>Sample data file: ${filename}</p>
-                        <p>To load this data, download the sample file from the data/ directory and use the CSV import feature above.</p>
+                    <div class="result error">
+                        <h4>❌ Error Loading Sample Data</h4>
+                        <p>Network error: ${error.message}</p>
+                        <p>Please check your connection and try again.</p>
                     </div>
                 `;
-            } catch (error) {
-                result.innerHTML = `<div class="result error">Failed to load sample data: ${error.message}</div>`;
             } finally {
                 loading.style.display = 'none';
             }

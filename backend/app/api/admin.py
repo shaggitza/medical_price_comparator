@@ -3,6 +3,7 @@ from typing import List, Dict, Any
 import csv
 import io
 import json
+import os
 from datetime import datetime
 
 from ..config import app_logger
@@ -224,3 +225,127 @@ async def clear_all_data(confirm: str = ""):
         return {"message": f"Deleted all analyses"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error clearing data: {str(e)}")
+
+
+@router.post("/load-sample-data/{provider}")
+async def load_sample_data(provider: str):
+    """Load sample data for a specific provider into the database"""
+    app_logger.info(f"Loading sample data for provider: {provider}")
+    
+    # Validate provider
+    if provider not in ["reginamaria", "medlife"]:
+        raise HTTPException(status_code=400, detail="Invalid provider. Must be 'reginamaria' or 'medlife'")
+    
+    try:
+        # Construct path to sample CSV file
+        data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "..", "..", "data")
+        csv_file_path = os.path.join(data_dir, f"sample_analyses_{provider}.csv")
+        
+        app_logger.debug(f"Looking for sample CSV at: {csv_file_path}")
+        
+        if not os.path.exists(csv_file_path):
+            raise HTTPException(status_code=404, detail=f"Sample data file not found for provider {provider}")
+        
+        # Read and parse the CSV file
+        with open(csv_file_path, 'r', encoding='utf-8') as file:
+            csv_content = file.read()
+        
+        csv_reader = csv.DictReader(io.StringIO(csv_content))
+        
+        imported_count = 0
+        errors = []
+        total_records = 0
+        
+        for row_num, row in enumerate(csv_reader, 1):
+            total_records += 1
+            
+            try:
+                # Extract data from CSV row
+                analysis_name = row.get('name', '').strip()
+                price_str = row.get('price', '0').strip()
+                currency = row.get('currency', 'RON').strip()
+                category = row.get('category', 'general').strip()
+                price_type = row.get('price_type', 'normal').strip()
+                description = row.get('description', '').strip()
+                alternative_names_str = row.get('alternative_names', '')
+                
+                if not analysis_name:
+                    errors.append(f"Row {row_num}: Missing analysis name")
+                    continue
+                
+                # Convert price to float
+                try:
+                    price = float(price_str.replace(',', '.'))
+                except ValueError:
+                    errors.append(f"Row {row_num}: Invalid price format: {price_str}")
+                    continue
+                
+                # Parse alternative names
+                alternative_names = []
+                if alternative_names_str:
+                    alternative_names = [name.strip() for name in alternative_names_str.split(';') if name.strip()]
+                
+                # Check if analysis already exists
+                existing = await MedicalAnalysis.find_one(MedicalAnalysis.name == analysis_name)
+                
+                if existing:
+                    # Update existing analysis with new price
+                    price_info = PriceInfo(amount=price, currency=currency)
+                    
+                    # Update the prices dictionary
+                    if provider not in existing.prices:
+                        existing.prices[provider] = {}
+                    existing.prices[provider][price_type] = price_info.dict()
+                    
+                    await existing.save()
+                    app_logger.debug(f"Updated existing analysis: {analysis_name} with {price_type} price for {provider}")
+                else:
+                    # Create new analysis
+                    price_info = PriceInfo(amount=price, currency=currency)
+                    
+                    new_analysis = MedicalAnalysis(
+                        name=analysis_name,
+                        alternative_names=alternative_names,
+                        category=category,
+                        description=description if description else None,
+                        prices={provider: {price_type: price_info.dict()}}
+                    )
+                    
+                    await new_analysis.create()
+                    app_logger.debug(f"Created new analysis: {analysis_name} with {price_type} price for {provider}")
+                
+                imported_count += 1
+                
+            except Exception as e:
+                error_msg = f"Row {row_num}: {str(e)}"
+                errors.append(error_msg)
+                app_logger.warning(error_msg)
+        
+        # Save import log
+        import_log = ImportedData(
+            filename=f"sample_analyses_{provider}.csv",
+            import_date=datetime.now().isoformat(),
+            provider=provider,
+            total_records=total_records,
+            successful_imports=imported_count,
+            errors=[{"message": error, "row": i+1} for i, error in enumerate(errors)]
+        )
+        
+        await import_log.create()
+        
+        app_logger.info(f"Sample data load completed for {provider}: {imported_count}/{total_records} records imported")
+        
+        return {
+            "message": f"Sample data loaded successfully for {provider}",
+            "provider": provider,
+            "total_records": total_records,
+            "successful_imports": imported_count,
+            "errors": len(errors),
+            "error_details": errors[:5] if errors else []  # Return first 5 errors
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        app_logger.error(f"Error loading sample data for {provider}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to load sample data: {str(e)}")

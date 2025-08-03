@@ -2,7 +2,7 @@ import pytest
 from io import BytesIO
 import json
 from httpx import AsyncClient
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, patch, mock_open
 
 class TestCSVPreview:
     """Test CSV preview functionality"""
@@ -176,3 +176,97 @@ class TestAdminFileHandling:
         
         # Should handle BOM gracefully
         assert response.status_code in [200, 400]
+
+
+class TestLoadSampleData:
+    """Test load sample data functionality"""
+    
+    @pytest.mark.asyncio
+    async def test_load_sample_data_valid_provider(self, client: AsyncClient):
+        """Test loading sample data for valid provider"""
+        # Mock the file system to simulate existing sample CSV file
+        sample_csv_content = "name,category,price,price_type,currency,alternative_names,description\nHemoglobina,blood,15.5,normal,RON,Hb;Hemoglobin,Proteina care transporta oxigenul in sange\nHemoglobina,blood,12.0,premium,RON,Hb;Hemoglobin,Proteina care transporta oxigenul in sange"
+        
+        with patch('os.path.exists', return_value=True), \
+             patch('builtins.open', mock_open(read_data=sample_csv_content)), \
+             patch('backend.app.api.admin.MedicalAnalysis.find_one', return_value=None), \
+             patch('backend.app.api.admin.MedicalAnalysis.create') as mock_create, \
+             patch('backend.app.api.admin.ImportedData.create') as mock_log_create:
+            
+            mock_create.return_value = AsyncMock()
+            mock_log_create.return_value = AsyncMock()
+            
+            response = await client.post("/api/v1/admin/load-sample-data/reginamaria")
+            
+            # Print response for debugging
+            print(f"Status: {response.status_code}")
+            print(f"Response: {response.json()}")
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["provider"] == "reginamaria"
+            assert data["total_records"] == 2
+            assert data["successful_imports"] == 2
+            assert "successfully" in data["message"].lower()
+    
+    @pytest.mark.asyncio
+    async def test_load_sample_data_invalid_provider(self, client: AsyncClient):
+        """Test loading sample data for invalid provider"""
+        response = await client.post("/api/v1/admin/load-sample-data/invalid-provider")
+        
+        assert response.status_code == 400
+        data = response.json()
+        assert "Invalid provider" in data["detail"]
+    
+    @pytest.mark.asyncio
+    async def test_load_sample_data_file_not_found(self, client: AsyncClient):
+        """Test loading sample data when file doesn't exist"""
+        with patch('os.path.exists', return_value=False):
+            response = await client.post("/api/v1/admin/load-sample-data/reginamaria")
+            
+            assert response.status_code == 404
+            data = response.json()
+            assert "Sample data file not found" in data["detail"]
+    
+    @pytest.mark.asyncio 
+    async def test_load_sample_data_update_existing(self, client: AsyncClient):
+        """Test loading sample data updates existing analysis"""
+        sample_csv_content = """name,category,price,price_type,currency,alternative_names,description
+Hemoglobina,blood,15.5,normal,RON,Hb;Hemoglobin,Proteina care transporta oxigenul in sange"""
+        
+        # Mock existing analysis
+        existing_analysis = AsyncMock()
+        existing_analysis.prices = {}
+        existing_analysis.save = AsyncMock()
+        
+        with patch('os.path.exists', return_value=True), \
+             patch('builtins.open', mock_open(read_data=sample_csv_content)), \
+             patch('backend.app.api.admin.MedicalAnalysis.find_one', return_value=existing_analysis), \
+             patch('backend.app.api.admin.ImportedData.create') as mock_log_create:
+            
+            mock_log_create.return_value = AsyncMock()
+            
+            response = await client.post("/api/v1/admin/load-sample-data/medlife")
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["provider"] == "medlife"
+            assert data["successful_imports"] == 1
+            # Verify the existing analysis was updated
+            existing_analysis.save.assert_called_once()
+    
+    @pytest.mark.asyncio
+    async def test_load_sample_data_database_error(self, client: AsyncClient):
+        """Test loading sample data handles database errors"""
+        sample_csv_content = """name,category,price,price_type,currency,alternative_names,description
+Hemoglobina,blood,15.5,normal,RON,Hb;Hemoglobin,Proteina care transporta oxigenul in sange"""
+        
+        with patch('os.path.exists', return_value=True), \
+             patch('builtins.open', mock_open(read_data=sample_csv_content)), \
+             patch('backend.app.api.admin.MedicalAnalysis.find_one', side_effect=Exception("Database error")):
+            
+            response = await client.post("/api/v1/admin/load-sample-data/reginamaria")
+            
+            assert response.status_code == 500
+            data = response.json()
+            assert "Failed to load sample data" in data["detail"]

@@ -1,7 +1,7 @@
 import pytest
 import pytest_asyncio
 import asyncio
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from unittest.mock import AsyncMock, patch
 
 from backend.app.main import app
@@ -37,7 +37,7 @@ async def client():
         # Set up default mock behaviors
         mock_find_one.return_value = None  # No existing analysis found
         
-        async with AsyncClient(app=app, base_url="http://test") as ac:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             yield ac
 
 @pytest.fixture

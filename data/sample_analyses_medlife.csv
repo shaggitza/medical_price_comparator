@@ -1,35 +1,61 @@
-analysis_name,category,price_normal,price_premium,currency,alternative_names,description
-Hemoglobina,blood,14.0,0.0,RON,Hb;Hemoglobin,Proteina care transporta oxigenul in sange
-Glicemia,blood,11.0,0.0,RON,Glucoza;Glucose,Nivelul zaharului din sange
-Colesterol total,blood,16.5,8.0,RON,Cholesterol,Nivelul colesterolului total
-Trigliceride,blood,15.0,7.0,RON,TG,Lipide din sange
-Creatinina,blood,13.5,0.0,RON,Creatinine,Marker al functiei renale
-Urea,blood,12.5,0.0,RON,BUN,Produs de descompunere proteica
-Acid uric,blood,14.5,0.0,RON,Uric acid,Produs final al metabolismului purinelor
-Bilirubina totala,blood,15.5,8.0,RON,Bilirubin,Pigment biliar
-ALT,blood,16.0,8.5,RON,ALAT;Alanin aminotransferaza,Enzima hepatica
-AST,blood,16.0,8.5,RON,ASAT;Aspartat aminotransferaza,Enzima hepatica
-Fosfataza alcalina,blood,17.0,9.0,RON,ALP,Enzima din ficat si oase
-Proteine totale,blood,15.0,8.0,RON,Total proteins,Proteinele din ser
-Albumina,blood,14.0,7.0,RON,Albumin,Principala proteina serica
-Ferul seric,blood,18.0,10.0,RON,Iron;Fe,Nivelul fierului din sange
-Feritina,blood,20.0,12.0,RON,Ferritin,Forma de depozitare a fierului
-TSH,hormones,23.0,0.0,RON,Tirotropina,Hormonul stimulator tiroidian
-T4 liber,hormones,26.0,13.0,RON,FT4;Free T4,Hormon tiroidian liber
-T3 liber,hormones,28.0,14.0,RON,FT3;Free T3,Hormon tiroidian liber
-Vitamina D,vitamins,42.0,21.0,RON,25-OH Vitamin D,Vitamina pentru oase
-Vitamina B12,vitamins,32.0,16.0,RON,Cobalamin,Vitamina pentru sistem nervos
-Homocisteina,cardiovascular,38.0,19.0,RON,Homocysteine,Marker cardiovascular
-PCR,inflammation,18.0,9.0,RON,Proteina C reactiva;CRP,Marker inflamator
-VSH,inflammation,7.5,0.0,RON,Viteza de sedimentare,Test inflamator
-Hemoleucograma,blood,23.0,0.0,RON,CBC;Complete blood count,Analiza completa sange
-HDL Colesterol,blood,18.5,9.0,RON,Good cholesterol,Colesterolul bun
-LDL Colesterol,blood,20.0,10.0,RON,Bad cholesterol,Colesterolul rau
-HbA1c,diabetes,32.0,16.0,RON,Hemoglobina glicata,Marker diabet
-Insulina,hormones,28.0,14.0,RON,Insulin,Hormon pancreatic
-Cortizol,hormones,30.0,15.0,RON,Cortisol,Hormonul stresului
-Testosteron,hormones,35.0,17.5,RON,Testosterone,Hormon masculin
-Estradiol,hormones,33.0,16.5,RON,E2,Hormon feminin
-Prolactina,hormones,31.0,15.5,RON,Prolactin,Hormonul lactatiei
-FSH,hormones,34.0,17.0,RON,Hormon foliculostimulant,Hormon reproductiv
-LH,hormones,32.0,16.0,RON,Hormon luteinizant,Hormon reproductiv
+name,category,price,price_type,currency,alternative_names,description
+Hemoglobina,blood,14.0,normal,RON,Hb;Hemoglobin,Proteina care transporta oxigenul in sange
+Glicemia,blood,11.0,normal,RON,Glucoza;Glucose,Nivelul zaharului din sange
+Colesterol total,blood,16.5,normal,RON,Cholesterol,Nivelul colesterolului total
+Colesterol total,blood,8.0,premium,RON,Cholesterol,Nivelul colesterolului total
+Trigliceride,blood,15.0,normal,RON,TG,Lipide din sange
+Trigliceride,blood,7.0,premium,RON,TG,Lipide din sange
+Creatinina,blood,13.5,normal,RON,Creatinine,Marker al functiei renale
+Urea,blood,12.5,normal,RON,BUN,Produs de descompunere proteica
+Acid uric,blood,14.5,normal,RON,Uric acid,Produs final al metabolismului purinelor
+Bilirubina totala,blood,15.5,normal,RON,Bilirubin,Pigment biliar
+Bilirubina totala,blood,8.0,premium,RON,Bilirubin,Pigment biliar
+ALT,blood,16.0,normal,RON,ALAT;Alanin aminotransferaza,Enzima hepatica
+ALT,blood,8.5,premium,RON,ALAT;Alanin aminotransferaza,Enzima hepatica
+AST,blood,16.0,normal,RON,ASAT;Aspartat aminotransferaza,Enzima hepatica
+AST,blood,8.5,premium,RON,ASAT;Aspartat aminotransferaza,Enzima hepatica
+Fosfataza alcalina,blood,17.0,normal,RON,ALP,Enzima din ficat si oase
+Fosfataza alcalina,blood,9.0,premium,RON,ALP,Enzima din ficat si oase
+Proteine totale,blood,15.0,normal,RON,Total proteins,Proteinele din ser
+Proteine totale,blood,8.0,premium,RON,Total proteins,Proteinele din ser
+Albumina,blood,14.0,normal,RON,Albumin,Principala proteina serica
+Albumina,blood,7.0,premium,RON,Albumin,Principala proteina serica
+Ferul seric,blood,18.0,normal,RON,Iron;Fe,Nivelul fierului din sange
+Ferul seric,blood,10.0,premium,RON,Iron;Fe,Nivelul fierului din sange
+Feritina,blood,20.0,normal,RON,Ferritin,Forma de depozitare a fierului
+Feritina,blood,12.0,premium,RON,Ferritin,Forma de depozitare a fierului
+TSH,hormones,23.0,normal,RON,Tirotropina,Hormonul stimulator tiroidian
+T4 liber,hormones,26.0,normal,RON,FT4;Free T4,Hormon tiroidian liber
+T4 liber,hormones,13.0,premium,RON,FT4;Free T4,Hormon tiroidian liber
+T3 liber,hormones,28.0,normal,RON,FT3;Free T3,Hormon tiroidian liber
+T3 liber,hormones,14.0,premium,RON,FT3;Free T3,Hormon tiroidian liber
+Vitamina D,vitamins,42.0,normal,RON,25-OH Vitamin D,Vitamina pentru oase
+Vitamina D,vitamins,21.0,premium,RON,25-OH Vitamin D,Vitamina pentru oase
+Vitamina B12,vitamins,32.0,normal,RON,Cobalamin,Vitamina pentru sistem nervos
+Vitamina B12,vitamins,16.0,premium,RON,Cobalamin,Vitamina pentru sistem nervos
+Homocisteina,cardiovascular,38.0,normal,RON,Homocysteine,Marker cardiovascular
+Homocisteina,cardiovascular,19.0,premium,RON,Homocysteine,Marker cardiovascular
+PCR,inflammation,18.0,normal,RON,Proteina C reactiva;CRP,Marker inflamator
+PCR,inflammation,9.0,premium,RON,Proteina C reactiva;CRP,Marker inflamator
+VSH,inflammation,7.5,normal,RON,Viteza de sedimentare,Test inflamator
+Hemoleucograma,blood,23.0,normal,RON,CBC;Complete blood count,Analiza completa sange
+HDL Colesterol,blood,18.5,normal,RON,Good cholesterol,Colesterolul bun
+HDL Colesterol,blood,9.0,premium,RON,Good cholesterol,Colesterolul bun
+LDL Colesterol,blood,20.0,normal,RON,Bad cholesterol,Colesterolul rau
+LDL Colesterol,blood,10.0,premium,RON,Bad cholesterol,Colesterolul rau
+HbA1c,diabetes,32.0,normal,RON,Hemoglobina glicata,Marker diabet
+HbA1c,diabetes,16.0,premium,RON,Hemoglobina glicata,Marker diabet
+Insulina,hormones,28.0,normal,RON,Insulin,Hormon pancreatic
+Insulina,hormones,14.0,premium,RON,Insulin,Hormon pancreatic
+Cortizol,hormones,30.0,normal,RON,Cortisol,Hormonul stresului
+Cortizol,hormones,15.0,premium,RON,Cortisol,Hormonul stresului
+Testosteron,hormones,35.0,normal,RON,Testosterone,Hormon masculin
+Testosteron,hormones,17.5,premium,RON,Testosterone,Hormon masculin
+Estradiol,hormones,33.0,normal,RON,E2,Hormon feminin
+Estradiol,hormones,16.5,premium,RON,E2,Hormon feminin
+Prolactina,hormones,31.0,normal,RON,Prolactin,Hormonul lactatiei
+Prolactina,hormones,15.5,premium,RON,Prolactin,Hormonul lactatiei
+FSH,hormones,34.0,normal,RON,Hormon foliculostimulant,Hormon reproductiv
+FSH,hormones,17.0,premium,RON,Hormon foliculostimulant,Hormon reproductiv
+LH,hormones,32.0,normal,RON,Hormon luteinizant,Hormon reproductiv
+LH,hormones,16.0,premium,RON,Hormon luteinizant,Hormon reproductiv
