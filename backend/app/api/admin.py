@@ -237,8 +237,10 @@ async def load_sample_data(provider: str):
         raise HTTPException(status_code=400, detail="Invalid provider. Must be 'reginamaria' or 'medlife'")
     
     try:
-        # Construct path to sample CSV file
-        data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "..", "..", "data")
+        # Construct path to sample CSV file  
+        # admin.py is at backend/app/api/admin.py, so we need to go up 4 levels to reach project root
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        data_dir = os.path.join(project_root, "data")
         csv_file_path = os.path.join(data_dir, f"sample_analyses_{provider}.csv")
         
         app_logger.debug(f"Looking for sample CSV at: {csv_file_path}")
