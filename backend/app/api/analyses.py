@@ -14,7 +14,7 @@ async def get_suggestions(
     query: str = Query(..., description="Search term for analysis suggestions"),
     limit: int = Query(10, description="Maximum number of suggestions")
 ):
-    """Get search suggestions for medical analyses"""
+    """Get search suggestions for medical analyses with fuzzy matching"""
     app_logger.info(f"Getting suggestions for query: '{query}', limit: {limit}")
     
     if limit <= 0 or limit > 20:
@@ -25,33 +25,215 @@ async def get_suggestions(
         return {"suggestions": []}
     
     try:
-        # Create case-insensitive regex pattern
-        pattern = re.compile(query, re.IGNORECASE)
-        app_logger.debug(f"Using regex pattern: {pattern.pattern}")
+        query_clean = query.strip().lower()
+        
+        # First try exact and prefix matches
+        exact_pattern = re.compile(f"^{re.escape(query_clean)}", re.IGNORECASE)
+        contains_pattern = re.compile(re.escape(query_clean), re.IGNORECASE)
         
         # Search in name and alternative_names fields
-        results = await MedicalAnalysis.find({
+        exact_results = await MedicalAnalysis.find({
             "$or": [
-                {"name": {"$regex": pattern}},
-                {"alternative_names": {"$regex": pattern}}
+                {"name": {"$regex": exact_pattern}},
+                {"alternative_names": {"$regex": exact_pattern}}
             ]
         }).limit(limit).to_list()
         
+        contains_results = await MedicalAnalysis.find({
+            "$or": [
+                {"name": {"$regex": contains_pattern}},
+                {"alternative_names": {"$regex": contains_pattern}}
+            ]
+        }).limit(limit).to_list()
+        
+        # Combine results, giving priority to exact matches
+        all_results = []
+        seen_names = set()
+        
+        for analysis in exact_results:
+            if analysis.name not in seen_names:
+                all_results.append(analysis)
+                seen_names.add(analysis.name)
+        
+        for analysis in contains_results:
+            if analysis.name not in seen_names and len(all_results) < limit:
+                all_results.append(analysis)
+                seen_names.add(analysis.name)
+        
+        # If still no results or very few, try fuzzy matching with sample data
+        if len(all_results) < 3:
+            fuzzy_suggestions = get_fuzzy_suggestions(query_clean, limit - len(all_results))
+            all_results.extend(fuzzy_suggestions)
+        
         # Convert to simple suggestion format
         suggestions = []
-        for analysis in results:
-            suggestions.append({
-                "name": analysis.name,
-                "category": analysis.category,
-                "alternative_names": analysis.alternative_names
-            })
+        for analysis in all_results:
+            if hasattr(analysis, 'name'):  # Database result
+                suggestions.append({
+                    "name": analysis.name,
+                    "category": analysis.category,
+                    "alternative_names": analysis.alternative_names or []
+                })
+            else:  # Sample/fuzzy result
+                suggestions.append(analysis)
         
         app_logger.info(f"Found {len(suggestions)} suggestions for query '{query}'")
-        return {"suggestions": suggestions}
+        return {"suggestions": suggestions[:limit]}
         
     except Exception as e:
         app_logger.error(f"Error getting suggestions: {e}")
-        return {"suggestions": [], "error": str(e)}
+        # Fallback to fuzzy suggestions on error
+        try:
+            fuzzy_suggestions = get_fuzzy_suggestions(query.strip().lower(), limit)
+            return {"suggestions": fuzzy_suggestions}
+        except:
+            return {"suggestions": [], "error": str(e)}
+
+
+def get_fuzzy_suggestions(query: str, limit: int):
+    """Generate fuzzy suggestions for medical analyses, including typo-tolerant matches"""
+    # Extended list of common Romanian medical analyses with variations
+    sample_analyses = [
+        {"name": "Hemoglobina", "category": "Hematologie", "alternative_names": ["Hb", "Hemoglobin"]},
+        {"name": "Hematocrit", "category": "Hematologie", "alternative_names": ["Ht", "HCT"]},
+        {"name": "Leucocite", "category": "Hematologie", "alternative_names": ["WBC", "Globule albe"]},
+        {"name": "Trombocite", "category": "Hematologie", "alternative_names": ["PLT", "Plachetele"]},
+        {"name": "Eritrocite", "category": "Hematologie", "alternative_names": ["RBC", "Globule rosii"]},
+        {"name": "Glicemia", "category": "Biochimie", "alternative_names": ["Glucoza", "Glucose", "Glicemie"]},
+        {"name": "Colesterol", "category": "Biochimie", "alternative_names": ["Cholesterol", "Colesterolul"]},
+        {"name": "Colesterol HDL", "category": "Biochimie", "alternative_names": ["HDL", "Colesterol bun"]},
+        {"name": "Colesterol LDL", "category": "Biochimie", "alternative_names": ["LDL", "Colesterol rau"]},
+        {"name": "Trigliceride", "category": "Biochimie", "alternative_names": ["TG", "Trigliceridele"]},
+        {"name": "Creatinina", "category": "Biochimie", "alternative_names": ["Creatinine", "Creat"]},
+        {"name": "Urea", "category": "Biochimie", "alternative_names": ["BUN", "Azot urea"]},
+        {"name": "Acid uric", "category": "Biochimie", "alternative_names": ["Uric acid", "Acidul uric"]},
+        {"name": "Bilirubina totala", "category": "Biochimie", "alternative_names": ["Bilirubina", "TBIL"]},
+        {"name": "Bilirubina directa", "category": "Biochimie", "alternative_names": ["Bilirubina conjugata", "DBIL"]},
+        {"name": "AST", "category": "Biochimie", "alternative_names": ["ASAT", "Aspartat aminotransferaza"]},
+        {"name": "ALT", "category": "Biochimie", "alternative_names": ["ALAT", "Alanin aminotransferaza"]},
+        {"name": "Fosfataza alcalina", "category": "Biochimie", "alternative_names": ["ALP", "FA"]},
+        {"name": "GGT", "category": "Biochimie", "alternative_names": ["Gamma GT", "Gamma glutamil transferaza"]},
+        {"name": "Proteine totale", "category": "Biochimie", "alternative_names": ["Total proteins", "TP"]},
+        {"name": "Albumina", "category": "Biochimie", "alternative_names": ["Albumin", "ALB"]},
+        {"name": "Fierul seric", "category": "Biochimie", "alternative_names": ["Fe", "Iron", "Fier"]},
+        {"name": "Feritina", "category": "Biochimie", "alternative_names": ["Ferritin", "Feritina serica"]},
+        {"name": "Transferina", "category": "Biochimie", "alternative_names": ["Transferrin", "TIBC"]},
+        {"name": "Vitamina B12", "category": "Vitamine", "alternative_names": ["B12", "Cobalamina"]},
+        {"name": "Vitamina D", "category": "Vitamine", "alternative_names": ["25-OH Vitamina D", "Vit D"]},
+        {"name": "Acid folic", "category": "Vitamine", "alternative_names": ["Folati", "Vitamina B9"]},
+        {"name": "TSH", "category": "Endocrinologie", "alternative_names": ["Tirotropina", "Thyroid stimulating hormone"]},
+        {"name": "T4 liber", "category": "Endocrinologie", "alternative_names": ["FT4", "Tiroxina libera"]},
+        {"name": "T3 liber", "category": "Endocrinologie", "alternative_names": ["FT3", "Triiodotironina libera"]},
+        {"name": "Prolactina", "category": "Endocrinologie", "alternative_names": ["PRL", "Prolactin"]},
+        {"name": "Testosteron", "category": "Endocrinologie", "alternative_names": ["Testosteron total", "T"]},
+        {"name": "Estradiol", "category": "Endocrinologie", "alternative_names": ["E2", "Estrogen"]},
+        {"name": "Cortizol", "category": "Endocrinologie", "alternative_names": ["Cortisol", "Hidrocortizon"]},
+        {"name": "Insulina", "category": "Endocrinologie", "alternative_names": ["Insulin", "INS"]},
+        {"name": "HbA1c", "category": "Endocrinologie", "alternative_names": ["Hemoglobina glicata", "Hemoglobina glicosilata"]},
+        {"name": "PCR", "category": "Inflamatii", "alternative_names": ["CRP", "Proteina C reactiva"]},
+        {"name": "VSH", "category": "Inflamatii", "alternative_names": ["ESR", "Viteza de sedimentare"]},
+        {"name": "Fibrinogen", "category": "Coagulare", "alternative_names": ["Fibrinogenul", "FIB"]},
+        {"name": "INR", "category": "Coagulare", "alternative_names": ["Raport normalizat international"]},
+        {"name": "PTT", "category": "Coagulare", "alternative_names": ["aPTT", "Timpul de tromboplastina partiala"]},
+        {"name": "Examen urinar", "category": "Urologie", "alternative_names": ["Sumarul de urina", "Urina completa"]},
+        {"name": "Urocultura", "category": "Urologie", "alternative_names": ["Cultura urina", "Urine culture"]},
+        {"name": "Microalbumina", "category": "Urologie", "alternative_names": ["Albumina urinara", "MAU"]},
+        {"name": "PSA", "category": "Urologie", "alternative_names": ["Antigen prostatic specific"]},
+        {"name": "Beta hCG", "category": "Ginecologie", "alternative_names": ["hCG", "Gonadotrofina corionica"]},
+        {"name": "CA 15-3", "category": "Markeri tumorali", "alternative_names": ["Marker tumoral san"]},
+        {"name": "CA 125", "category": "Markeri tumorali", "alternative_names": ["Marker tumoral ovar"]},
+        {"name": "CEA", "category": "Markeri tumorali", "alternative_names": ["Antigen carcinoembrionar"]},
+        {"name": "AFP", "category": "Markeri tumorali", "alternative_names": ["Alfa-fetoproteina"]},
+    ]
+    
+    # Calculate similarity scores and find matches
+    matches = []
+    query_lower = query.lower()
+    
+    for analysis in sample_analyses:
+        score = 0
+        
+        # Check main name
+        name_lower = analysis["name"].lower()
+        if query_lower in name_lower:
+            score += 10
+        elif name_lower.startswith(query_lower):
+            score += 8
+        elif any(word.startswith(query_lower) for word in name_lower.split()):
+            score += 6
+        elif calculate_similarity(query_lower, name_lower) > 0.6:
+            score += 4
+        
+        # Check alternative names
+        for alt_name in analysis["alternative_names"]:
+            alt_lower = alt_name.lower()
+            if query_lower in alt_lower:
+                score += 8
+            elif alt_lower.startswith(query_lower):
+                score += 6
+            elif calculate_similarity(query_lower, alt_lower) > 0.6:
+                score += 3
+        
+        # Check if query is a common typo or abbreviation
+        if is_common_typo(query_lower, name_lower) or is_common_typo(query_lower, analysis["alternative_names"]):
+            score += 5
+        
+        if score > 0:
+            matches.append((score, analysis))
+    
+    # Sort by score and return top matches
+    matches.sort(key=lambda x: x[0], reverse=True)
+    return [match[1] for match in matches[:limit]]
+
+
+def calculate_similarity(str1: str, str2: str) -> float:
+    """Calculate similarity between two strings using simple character-based matching"""
+    if not str1 or not str2:
+        return 0.0
+    
+    # Convert to sets of characters for simple overlap calculation
+    set1 = set(str1.lower())
+    set2 = set(str2.lower())
+    
+    intersection = len(set1 & set2)
+    union = len(set1 | set2)
+    
+    if union == 0:
+        return 0.0
+    
+    return intersection / union
+
+
+def is_common_typo(query: str, targets) -> bool:
+    """Check if query might be a common typo of any target"""
+    if isinstance(targets, str):
+        targets = [targets]
+    
+    # Common typo patterns for Romanian medical terms
+    typo_patterns = {
+        'hemo': ['hemoglobina', 'hematocrit'],
+        'hema': ['hematocrit', 'hemoglobina'],
+        'glice': ['glicemia', 'glicemie'],
+        'gluco': ['glucoza', 'glicemia'],
+        'cole': ['colesterol'],
+        'chol': ['colesterol'],
+        'creat': ['creatinina'],
+        'uric': ['acid uric'],
+        'bili': ['bilirubina'],
+        'tsh': ['tirotropina'],
+        't4': ['tiroxina'],
+        't3': ['triiodotironina'],
+        'vita': ['vitamina'],
+        'vit': ['vitamina'],
+    }
+    
+    for pattern, matches in typo_patterns.items():
+        if query.startswith(pattern):
+            for target in targets:
+                if isinstance(target, str) and any(match in target.lower() for match in matches):
+                    return True
+    
+    return False
 
 
 @router.get("/search")
