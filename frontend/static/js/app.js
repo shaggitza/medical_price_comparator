@@ -227,6 +227,7 @@ function updateOCRResults() {
                                        class="table-search-input"
                                        autocomplete="off"
                                        oninput="handleTableSearchInput(${item.id}, this.value)"
+                                       onkeyup="handleTableSearchInput(${item.id}, this.value)"
                                        onfocus="this.select(); handleTableSearchInput(${item.id}, this.value)">
                                 <div id="tableSuggestions_${item.id}" class="table-suggestions"></div>
                             </div>
@@ -296,6 +297,8 @@ function handleSearchInput(event) {
 
 // Table search functionality for unmatched items
 function handleTableSearchInput(pendingId, query) {
+    console.log(`Table search input for ${pendingId}: "${query}"`);
+    
     // Clear previous timeout for this specific search
     if (tableSearchTimeouts[pendingId]) {
         clearTimeout(tableSearchTimeouts[pendingId]);
@@ -308,16 +311,19 @@ function handleTableSearchInput(pendingId, query) {
         return;
     }
     
-    // Debounce suggestions request
+    // Debounce suggestions request (reduced to 200ms for more responsive feel)
     tableSearchTimeouts[pendingId] = setTimeout(() => {
+        console.log(`Fetching suggestions for ${pendingId} with query: "${query}"`);
         fetchTableSuggestions(pendingId, query);
-    }, 300);
+    }, 200);
 }
 
 async function fetchTableSuggestions(pendingId, query) {
+    console.log(`Fetching table suggestions for ${pendingId}, query: "${query}"`);
     try {
         const response = await fetch(`${appState.apiBaseUrl}/analyses/suggestions?query=${encodeURIComponent(query)}&limit=8`);
         const data = await response.json();
+        console.log(`Received suggestions:`, data.suggestions);
         displayTableSuggestions(pendingId, data.suggestions || []);
     } catch (error) {
         console.error('Error fetching table suggestions:', error);
@@ -326,13 +332,16 @@ async function fetchTableSuggestions(pendingId, query) {
 }
 
 function displayTableSuggestions(pendingId, suggestions) {
+    console.log(`Displaying suggestions for ${pendingId}:`, suggestions);
     const suggestionsDiv = document.getElementById(`tableSuggestions_${pendingId}`);
     
     if (!suggestionsDiv) {
+        console.log(`Suggestions div not found for ${pendingId}`);
         return; // Element might not exist if table was updated
     }
     
     if (suggestions.length === 0) {
+        console.log(`No suggestions for ${pendingId}, hiding`);
         hideTableSuggestions(pendingId);
         return;
     }
@@ -349,6 +358,7 @@ function displayTableSuggestions(pendingId, suggestions) {
     
     suggestionsDiv.innerHTML = html;
     suggestionsDiv.style.display = 'block';
+    console.log(`Suggestions displayed for ${pendingId}`);
 }
 
 function hideTableSuggestions(pendingId) {
