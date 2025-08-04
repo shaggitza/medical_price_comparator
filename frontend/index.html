@@ -125,40 +125,7 @@
             </div>
         </div>
 
-        <!-- Search Section -->
-        <div class="card mb-6">
-            <div class="card-body">
-                <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <span class="icon icon-search text-blue-600"></span>
-                    Add Analysis to Comparison Table
-                </h3>
-                
-                <div class="relative">
-                    <div class="flex gap-3">
-                        <div class="flex-1 relative">
-                            <input type="text" 
-                                   id="searchInput"
-                                   oninput="handleSearchInput(event)"
-                                   onfocus="showSuggestions()"
-                                   onkeydown="handleSearchKeydown(event)"
-                                   placeholder="Start typing analysis name..."
-                                   class="form-input"
-                                   autocomplete="off">
-                            
-                            <!-- Suggestions Dropdown -->
-                            <div id="searchSuggestions" class="suggestions-dropdown hidden">
-                                <!-- Suggestions will be populated here -->
-                            </div>
-                        </div>
-                        <button onclick="addAnalysisFromSearch()" 
-                                class="btn btn-primary">
-                            <span class="icon icon-plus"></span>
-                            Add to Table
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+
 
         <!-- Comparison Table Section -->
         <div class="card mb-6">
@@ -167,6 +134,34 @@
                     <span class="icon icon-table text-blue-600"></span>
                     Analysis Comparison Table
                 </h3>
+                
+                <!-- Search within Table -->
+                <div class="mb-4">
+                    <div class="relative">
+                        <div class="flex gap-3">
+                            <div class="flex-1 relative">
+                                <input type="text" 
+                                       id="searchInput"
+                                       oninput="handleSearchInput(event)"
+                                       onfocus="showSuggestions()"
+                                       onkeydown="handleSearchKeydown(event)"
+                                       placeholder="Start typing analysis name..."
+                                       class="form-input"
+                                       autocomplete="off">
+                                
+                                <!-- Suggestions Dropdown -->
+                                <div id="searchSuggestions" class="suggestions-dropdown hidden">
+                                    <!-- Suggestions will be populated here -->
+                                </div>
+                            </div>
+                            <button onclick="addAnalysisFromSearch()" 
+                                    class="btn btn-primary">
+                                <span class="icon icon-plus"></span>
+                                Add to Table
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 
                 <div id="emptyTable">
                     <div class="text-center py-12">
