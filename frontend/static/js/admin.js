@@ -252,12 +252,8 @@ async function loadSampleData(provider) {
   }
   
   try {
-    const response = await fetch(`${adminState.apiBaseUrl}/admin/load-sample-data`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ provider })
+    const response = await fetch(`${adminState.apiBaseUrl}/admin/load-sample-data/${provider}`, {
+      method: 'POST'
     });
     
     if (!response.ok) {
