@@ -1,441 +1,415 @@
-// Medical Price Comparator - Admin Panel Logic
+// Medical Price Comparator - Admin Panel
+// Simple, component-based approach
 
-// Configuration
-const API_BASE_URL = '/api/v1';
-let csvPreviewData = null;
-let isPreviewLoading = false;
+// Admin state
+const adminState = {
+  csvFile: null,
+  csvPreviewData: null,
+  isLoading: false,
+  provider: '',
+  apiBaseUrl: '/api/v1'
+};
 
-// CSV Preview and Import Functions
+// Initialize admin panel
+function initializeAdmin() {
+  try {
+    setupFileUpload();
+    setupProviderSelection();
+    console.log('Admin panel initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize admin panel:', error);
+    showToast('Admin panel failed to initialize', 'error');
+  }
+}
+
+// File upload setup
+function setupFileUpload() {
+  const csvFile = document.getElementById('csvFile');
+  if (csvFile) {
+    csvFile.addEventListener('change', handleCSVFileSelect);
+  }
+}
+
+// Provider selection setup
+function setupProviderSelection() {
+  const providerSelect = document.getElementById('provider');
+  if (providerSelect) {
+    providerSelect.addEventListener('change', (e) => {
+      adminState.provider = e.target.value;
+    });
+  }
+}
+
+// Handle CSV file selection
+function handleCSVFileSelect(event) {
+  const file = event.target.files[0];
+  if (file) {
+    adminState.csvFile = file;
+    previewCSV();
+  } else {
+    adminState.csvFile = null;
+    hideCSVPreview();
+  }
+}
+
+// Preview CSV file
 async function previewCSV() {
-    const fileInput = document.getElementById('csvFile');
-    const previewContainer = document.getElementById('csvPreview');
-    
-    if (isPreviewLoading) {
-        console.log('Preview already loading, skipping');
-        return;
-    }
-    
-    if (!fileInput.files[0]) {
-        previewContainer.classList.add('hidden');
-        return;
-    }
-    
-    isPreviewLoading = true;
-    const previewContent = document.getElementById('previewContent');
-    previewContent.innerHTML = '<div class="text-center"><div class="loading-spinner inline-block mr-2"></div>Loading CSV preview...</div>';
-    previewContainer.classList.remove('hidden');
+  if (!adminState.csvFile) {
+    hideCSVPreview();
+    return;
+  }
+  
+  const previewContainer = document.getElementById('csvPreview');
+  if (!previewContainer) return;
+  
+  try {
+    setLoadingState(true);
+    showCSVPreview();
     
     const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
+    formData.append('file', adminState.csvFile);
     
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin/csv-preview`, {
-            method: 'POST',
-            body: formData,
-            signal: AbortSignal.timeout(30000)
-        });
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Failed to preview CSV');
-        }
-        
-        csvPreviewData = await response.json();
-        displayCSVPreview(csvPreviewData);
-        previewContainer.classList.remove('hidden');
-    } catch (error) {
-        console.error('CSV preview error:', error);
-        previewContent.innerHTML = `<div class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">Error previewing CSV: ${error.message}</div>`;
-    } finally {
-        isPreviewLoading = false;
+    const response = await fetch(`${adminState.apiBaseUrl}/admin/csv-preview`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to preview CSV');
     }
+    
+    const data = await response.json();
+    adminState.csvPreviewData = data;
+    displayCSVPreview(data);
+    
+  } catch (error) {
+    console.error('CSV preview error:', error);
+    showToast('Failed to preview CSV file', 'error');
+    hideCSVPreview();
+  } finally {
+    setLoadingState(false);
+  }
 }
 
+// Display CSV preview
 function displayCSVPreview(data) {
-    const previewContent = document.getElementById('previewContent');
-    const mappingFields = document.getElementById('mappingFields');
-    
-    // Display sample rows
-    let html = '<h5 class="font-semibold mb-3">Sample Data:</h5>';
-    html += '<div class="overflow-x-auto">';
-    html += '<table class="table-modern"><thead><tr>';
-    
-    data.fieldnames.forEach(field => {
-        html += `<th>${field}</th>`;
-    });
-    html += '</tr></thead><tbody>';
-    
-    data.sample_rows.forEach(row => {
-        html += '<tr>';
-        data.fieldnames.forEach(field => {
-            html += `<td>${row[field] || ''}</td>`;
-        });
-        html += '</tr>';
-    });
-    html += '</tbody></table></div>';
-    
-    previewContent.innerHTML = html;
-    
-    // Create field mapping
-    const mapping = data.suggested_mapping;
-    let mappingHTML = '<h5 class="font-semibold mb-3">Field Mapping:</h5>';
-    mappingHTML += '<div class="grid md:grid-cols-2 gap-4">';
-    
-    const requiredFields = [
-        {key: 'name', label: 'Analysis Name', required: true},
-        {key: 'price', label: 'Price (Normal)', required: true},
-        {key: 'currency', label: 'Currency', required: false},
-        {key: 'category', label: 'Category', required: false},
-        {key: 'price_type', label: 'Price Type', required: false},
-        {key: 'alternative_names', label: 'Alternative Names', required: false},
-        {key: 'description', label: 'Description', required: false}
-    ];
-    
-    requiredFields.forEach(field => {
-        mappingHTML += `
-            <div class="form-group">
-                <label class="form-label">${field.label}${field.required ? ' *' : ''}:</label>
-                <select id="mapping_${field.key}" class="form-select">
-                    <option value="">-- Select Field --</option>
-        `;
-        
-        data.fieldnames.forEach(csvField => {
-            const selected = mapping[field.key] === csvField ? 'selected' : '';
-            mappingHTML += `<option value="${csvField}" ${selected}>${csvField}</option>`;
-        });
-        
-        mappingHTML += '</select></div>';
-    });
-    
-    mappingHTML += '</div>';
-    mappingFields.innerHTML = mappingHTML;
-}
-
-async function importCSV() {
-    const fileInput = document.getElementById('csvFile');
-    const providerSelect = document.getElementById('provider');
-    const loading = document.getElementById('importLoading');
-    const result = document.getElementById('importResult');
-    
-    if (!fileInput.files[0]) {
-        showNotification('Please select a CSV file', 'error');
-        return;
-    }
-    
-    if (!providerSelect.value) {
-        showNotification('Please select a provider', 'error');
-        return;
-    }
-    
-    // Collect field mapping
-    const mapping = {};
-    const requiredFields = ['name', 'price'];
-    
-    for (let field of requiredFields) {
-        const selectElement = document.getElementById(`mapping_${field}`);
-        if (!selectElement.value) {
-            showNotification(`Please map the required field: ${field}`, 'error');
-            return;
-        }
-        mapping[field] = selectElement.value;
-    }
-    
-    // Optional fields
-    const optionalFields = ['currency', 'category', 'price_type', 'alternative_names', 'description'];
-    for (let field of optionalFields) {
-        const selectElement = document.getElementById(`mapping_${field}`);
-        if (selectElement.value) {
-            mapping[field] = selectElement.value;
-        }
-    }
-    
-    loading.classList.remove('hidden');
-    result.innerHTML = '';
-    
-    const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
-    formData.append('provider', providerSelect.value);
-    formData.append('field_mapping', JSON.stringify(mapping));
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin/import-csv`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            result.innerHTML = `
-                <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <h4 class="font-semibold text-green-800 mb-2">✅ Import Successful!</h4>
-                    <div class="text-sm text-green-700">
-                        <p><strong>Total records:</strong> ${data.total_records}</p>
-                        <p><strong>Successful imports:</strong> ${data.successful_imports}</p>
-                        <p><strong>Errors:</strong> ${data.errors}</p>
-                        ${data.error_details && data.error_details.length > 0 ? 
-                            `<details class="mt-2">
-                                <summary class="cursor-pointer font-medium">Error Details</summary>
-                                <ul class="mt-2 ml-4 list-disc">
-                                    ${data.error_details.map(e => `<li>${e}</li>`).join('')}
-                                </ul>
-                            </details>` 
-                            : ''}
-                    </div>
-                </div>
-            `;
-            showNotification('CSV import completed successfully', 'success');
-        } else {
-            result.innerHTML = `
-                <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <h4 class="font-semibold text-red-800 mb-2">❌ Import Failed</h4>
-                    <p class="text-red-700">${data.detail}</p>
-                </div>
-            `;
-            showNotification('CSV import failed', 'error');
-        }
-    } catch (error) {
-        result.innerHTML = `
-            <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <h4 class="font-semibold text-red-800 mb-2">❌ Import Failed</h4>
-                <p class="text-red-700">${error.message}</p>
-            </div>
-        `;
-        showNotification('CSV import failed: ' + error.message, 'error');
-    } finally {
-        loading.classList.add('hidden');
-    }
-}
-
-// Import History Functions
-async function loadImportHistory() {
-    const loading = document.getElementById('historyLoading');
-    const history = document.getElementById('importHistory');
-    
-    loading.classList.remove('hidden');
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin/import-history`);
-        const data = await response.json();
-        
-        let html = '<h4 class="font-semibold mb-4">Recent Imports</h4>';
-        
-        if (data.imports && data.imports.length > 0) {
-            html += '<div class="overflow-x-auto">';
-            html += '<table class="table-modern">';
-            html += '<thead><tr><th>Date</th><th>File</th><th>Provider</th><th>Total</th><th>Success</th><th>Errors</th></tr></thead>';
-            html += '<tbody>';
-            
-            data.imports.forEach(imp => {
-                html += `
-                    <tr>
-                        <td>${new Date(imp.import_date).toLocaleString()}</td>
-                        <td>${imp.filename}</td>
-                        <td class="capitalize">${imp.provider}</td>
-                        <td>${imp.total_records}</td>
-                        <td class="text-green-600 font-semibold">${imp.successful_imports}</td>
-                        <td class="text-red-600 font-semibold">${imp.errors ? imp.errors.length : 0}</td>
-                    </tr>
-                `;
-            });
-            
-            html += '</tbody></table></div>';
-        } else {
-            html += '<div class="text-center py-8 text-gray-600">';
-            html += '<span class="icon icon-file text-4xl text-gray-300 mb-2"></span>';
-            html += '<p>No import history found.</p>';
-            html += '</div>';
-        }
-        
-        history.innerHTML = html;
-    } catch (error) {
-        history.innerHTML = `
-            <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <h4 class="font-semibold text-red-800 mb-2">❌ Failed to Load History</h4>
-                <p class="text-red-700">${error.message}</p>
-            </div>
-        `;
-    } finally {
-        loading.classList.add('hidden');
-    }
-}
-
-// Sample Data Functions
-async function loadSampleData(provider) {
-    const loading = document.getElementById('sampleLoading');
-    const result = document.getElementById('sampleResult');
-    
-    loading.classList.remove('hidden');
-    result.innerHTML = '';
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin/load-sample-data/${provider}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            result.innerHTML = `
-                <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <h4 class="font-semibold text-green-800 mb-3">✅ Sample Data Loaded Successfully</h4>
-                    <div class="text-sm text-green-700 space-y-1">
-                        <p><strong>Provider:</strong> <span class="capitalize">${data.provider}</span></p>
-                        <p><strong>Records Processed:</strong> ${data.total_records}</p>
-                        <p><strong>Successfully Imported:</strong> ${data.successful_imports}</p>
-                        ${data.errors > 0 ? `<p><strong>Errors:</strong> ${data.errors}</p>` : ''}
-                        ${data.error_details && data.error_details.length > 0 ? 
-                            `<details class="mt-2">
-                                <summary class="cursor-pointer font-medium">Error Details</summary>
-                                <ul class="mt-2 ml-4 list-disc">
-                                    ${data.error_details.map(err => `<li>${err}</li>`).join('')}
-                                </ul>
-                            </details>` : 
-                            ''
-                        }
-                    </div>
-                    <div class="mt-3 p-3 bg-green-100 rounded text-green-800 text-sm">
-                        <strong>📊 Sample data has been loaded into the database and is now available for search and comparison.</strong>
-                    </div>
-                </div>
-            `;
-            showNotification(`Sample data for ${provider} loaded successfully`, 'success');
-        } else {
-            result.innerHTML = `
-                <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <h4 class="font-semibold text-red-800 mb-2">❌ Failed to Load Sample Data</h4>
-                    <p class="text-red-700">${data.detail || 'Unknown error occurred'}</p>
-                </div>
-            `;
-            showNotification('Failed to load sample data', 'error');
-        }
-    } catch (error) {
-        result.innerHTML = `
-            <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <h4 class="font-semibold text-red-800 mb-2">❌ Error Loading Sample Data</h4>
-                <p class="text-red-700">Network error: ${error.message}</p>
-                <p class="text-red-600 text-sm mt-1">Please check your connection and try again.</p>
-            </div>
-        `;
-        showNotification('Error loading sample data: ' + error.message, 'error');
-    } finally {
-        loading.classList.add('hidden');
-    }
-}
-
-// Danger Zone Functions
-async function clearAllData() {
-    const result = document.getElementById('clearResult');
-    
-    if (!confirm('Are you sure you want to delete ALL analysis data? This cannot be undone!')) {
-        return;
-    }
-    
-    const confirmation = prompt('Type "DELETE_ALL_DATA" to confirm:');
-    if (confirmation !== 'DELETE_ALL_DATA') {
-        result.innerHTML = `
-            <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p class="text-yellow-800">⚠️ Confirmation failed. Data not deleted.</p>
-            </div>
-        `;
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/admin/clear-data?confirm=DELETE_ALL_DATA`, {
-            method: 'DELETE'
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            result.innerHTML = `
-                <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <h4 class="font-semibold text-green-800 mb-2">✅ Data Cleared Successfully</h4>
-                    <p class="text-green-700">${data.message}</p>
-                </div>
-            `;
-            showNotification('All data cleared successfully', 'success');
-        } else {
-            result.innerHTML = `
-                <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <h4 class="font-semibold text-red-800 mb-2">❌ Failed to Clear Data</h4>
-                    <p class="text-red-700">${data.detail}</p>
-                </div>
-            `;
-            showNotification('Failed to clear data', 'error');
-        }
-    } catch (error) {
-        result.innerHTML = `
-            <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <h4 class="font-semibold text-red-800 mb-2">❌ Failed to Clear Data</h4>
-                <p class="text-red-700">${error.message}</p>
-            </div>
-        `;
-        showNotification('Failed to clear data: ' + error.message, 'error');
-    }
-}
-
-// Utility Functions
-function showNotification(message, type = 'info') {
-    const container = document.getElementById('toastContainer');
-    
-    const notification = document.createElement('div');
-    notification.className = `p-4 rounded-lg shadow-lg max-w-sm transition-all duration-300 transform translate-x-full`;
-    
-    const styles = {
-        success: 'bg-green-500 text-white',
-        error: 'bg-red-500 text-white',
-        warning: 'bg-yellow-500 text-white',
-        info: 'bg-blue-500 text-white'
-    };
-    
-    const icons = {
-        success: 'icon-check',
-        error: 'icon-times',
-        warning: 'icon-warning',
-        info: 'icon-info'
-    };
-    
-    notification.className += ` ${styles[type]}`;
-    notification.innerHTML = `
-        <div class="flex items-center gap-3">
-            <span class="icon ${icons[type]}"></span>
-            <span>${message}</span>
-            <button onclick="this.parentElement.parentElement.remove()" class="ml-2 hover:opacity-75">
-                <span class="icon icon-times"></span>
-            </button>
-        </div>
+  const previewContainer = document.getElementById('csvPreview');
+  if (!previewContainer) return;
+  
+  let html = `
+    <div class="csv-preview-content">
+      <h4 style="margin-bottom: 1rem; font-weight: 600;">CSV Preview</h4>
+      <div style="margin-bottom: 1rem;">
+        <strong>File:</strong> ${adminState.csvFile.name}<br>
+        <strong>Rows:</strong> ${data.rows || 0}<br>
+        <strong>Columns:</strong> ${data.columns || 0}
+      </div>
+  `;
+  
+  if (data.preview && data.preview.length > 0) {
+    html += `
+      <div style="overflow-x: auto; margin-bottom: 1rem;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+          <thead>
+            <tr style="background: var(--gray-100);">
     `;
     
-    container.appendChild(notification);
+    // Headers
+    Object.keys(data.preview[0]).forEach(header => {
+      html += `<th style="padding: 0.5rem; border: 1px solid var(--gray-300); text-align: left;">${header}</th>`;
+    });
     
-    // Animate in
-    setTimeout(() => {
-        notification.classList.remove('translate-x-full');
-    }, 100);
+    html += `
+            </tr>
+          </thead>
+          <tbody>
+    `;
     
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-        notification.classList.add('translate-x-full');
-        setTimeout(() => {
-            if (notification.parentElement) {
-                notification.remove();
-            }
-        }, 300);
-    }, 5000);
+    // Rows (show first 5)
+    data.preview.slice(0, 5).forEach(row => {
+      html += '<tr>';
+      Object.values(row).forEach(cell => {
+        html += `<td style="padding: 0.5rem; border: 1px solid var(--gray-300);">${cell || ''}</td>`;
+      });
+      html += '</tr>';
+    });
+    
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+    
+    if (data.preview.length > 5) {
+      html += `<p style="color: var(--gray-600); font-size: 0.875rem;">Showing first 5 rows of ${data.preview.length} total rows</p>`;
+    }
+  }
+  
+  html += '</div>';
+  previewContainer.innerHTML = html;
 }
 
-// Initialize Admin Panel
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Medical Price Comparator Admin Panel initialized');
+// Show/hide CSV preview
+function showCSVPreview() {
+  const previewContainer = document.getElementById('csvPreview');
+  if (previewContainer) {
+    previewContainer.classList.add('show');
+  }
+}
+
+function hideCSVPreview() {
+  const previewContainer = document.getElementById('csvPreview');
+  if (previewContainer) {
+    previewContainer.classList.remove('show');
+    previewContainer.innerHTML = '';
+  }
+}
+
+// Import CSV data
+async function importCSV() {
+  if (!adminState.csvFile) {
+    showToast('Please select a CSV file first', 'warning');
+    return;
+  }
+  
+  if (!adminState.provider) {
+    showToast('Please select a provider', 'warning');
+    return;
+  }
+  
+  try {
+    setButtonLoading('importButton', true);
     
-    // Set up global error handling
-    window.addEventListener('unhandledrejection', (event) => {
-        console.error('Unhandled promise rejection:', event.reason);
-        showNotification('An unexpected error occurred', 'error');
+    const formData = new FormData();
+    formData.append('file', adminState.csvFile);
+    formData.append('provider', adminState.provider);
+    
+    const response = await fetch(`${adminState.apiBaseUrl}/admin/import-csv`, {
+      method: 'POST',
+      body: formData
     });
-});
+    
+    if (!response.ok) {
+      throw new Error('Import failed');
+    }
+    
+    const result = await response.json();
+    showImportResult(result);
+    showToast('CSV imported successfully', 'success');
+    
+    // Clear form
+    clearImportForm();
+    
+  } catch (error) {
+    console.error('Import error:', error);
+    showToast('Failed to import CSV', 'error');
+  } finally {
+    setButtonLoading('importButton', false);
+  }
+}
+
+// Show import result
+function showImportResult(result) {
+  const resultContainer = document.getElementById('importResult');
+  if (!resultContainer) return;
+  
+  const html = `
+    <div style="background: var(--success); color: white; padding: 1rem; border-radius: var(--radius); margin-top: 1rem;">
+      <h4 style="margin-bottom: 0.5rem;">✅ Import Successful</h4>
+      <p>Imported ${result.imported || 0} analyses for ${adminState.provider}</p>
+      ${result.errors ? `<p style="margin-top: 0.5rem;">⚠️ ${result.errors} errors encountered</p>` : ''}
+    </div>
+  `;
+  
+  resultContainer.innerHTML = html;
+  
+  // Clear after 5 seconds
+  setTimeout(() => {
+    resultContainer.innerHTML = '';
+  }, 5000);
+}
+
+// Clear import form
+function clearImportForm() {
+  const csvFile = document.getElementById('csvFile');
+  const provider = document.getElementById('provider');
+  
+  if (csvFile) csvFile.value = '';
+  if (provider) provider.value = '';
+  
+  adminState.csvFile = null;
+  adminState.provider = '';
+  adminState.csvPreviewData = null;
+  
+  hideCSVPreview();
+}
+
+// Load sample data
+async function loadSampleData(provider) {
+  if (!provider) {
+    showToast('Provider not specified', 'warning');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${adminState.apiBaseUrl}/admin/load-sample-data`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ provider })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to load sample data');
+    }
+    
+    const result = await response.json();
+    showSampleResult(result, provider);
+    showToast(`Sample data loaded for ${provider}`, 'success');
+    
+  } catch (error) {
+    console.error('Sample data error:', error);
+    showToast(`Failed to load sample data for ${provider}`, 'error');
+  }
+}
+
+// Show sample result
+function showSampleResult(result, provider) {
+  const resultContainer = document.getElementById('sampleResult');
+  if (!resultContainer) return;
+  
+  const html = `
+    <div style="background: var(--secondary); color: white; padding: 1rem; border-radius: var(--radius);">
+      <h4 style="margin-bottom: 0.5rem;">✅ Sample Data Loaded</h4>
+      <p>Loaded ${result.count || 0} sample analyses for ${provider}</p>
+    </div>
+  `;
+  
+  resultContainer.innerHTML = html;
+  
+  // Clear after 5 seconds
+  setTimeout(() => {
+    resultContainer.innerHTML = '';
+  }, 5000);
+}
+
+// Load import history
+async function loadImportHistory() {
+  const historyContainer = document.getElementById('importHistory');
+  if (!historyContainer) return;
+  
+  try {
+    historyContainer.innerHTML = '<div class="loading-state">Loading import history...</div>';
+    
+    const response = await fetch(`${adminState.apiBaseUrl}/admin/import-history`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to load import history');
+    }
+    
+    const history = await response.json();
+    displayImportHistory(history);
+    
+  } catch (error) {
+    console.error('History error:', error);
+    historyContainer.innerHTML = '<div style="color: var(--danger);">Failed to load import history</div>';
+  }
+}
+
+// Display import history
+function displayImportHistory(history) {
+  const historyContainer = document.getElementById('importHistory');
+  if (!historyContainer) return;
+  
+  if (!history.imports || history.imports.length === 0) {
+    historyContainer.innerHTML = '<p style="color: var(--gray-500);">No import history found</p>';
+    return;
+  }
+  
+  let html = '<div class="history-list">';
+  
+  history.imports.forEach(item => {
+    html += `
+      <div style="background: var(--gray-50); padding: 1rem; border-radius: var(--radius); margin-bottom: 1rem;">
+        <div style="font-weight: 600; margin-bottom: 0.5rem;">${item.provider || 'Unknown'}</div>
+        <div style="font-size: 0.875rem; color: var(--gray-600);">
+          ${item.date || 'Unknown date'} - ${item.count || 0} items imported
+        </div>
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  historyContainer.innerHTML = html;
+}
+
+// Clear all data
+async function clearAllData() {
+  if (!confirm('Are you sure you want to clear ALL data? This action cannot be undone.')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${adminState.apiBaseUrl}/admin/clear-all`, {
+      method: 'DELETE'
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to clear data');
+    }
+    
+    const result = await response.json();
+    showClearResult(result);
+    showToast('All data cleared successfully', 'success');
+    
+  } catch (error) {
+    console.error('Clear data error:', error);
+    showToast('Failed to clear data', 'error');
+  }
+}
+
+// Show clear result
+function showClearResult(result) {
+  const resultContainer = document.getElementById('clearResult');
+  if (!resultContainer) return;
+  
+  const html = `
+    <div style="background: var(--danger); color: white; padding: 1rem; border-radius: var(--radius);">
+      <h4 style="margin-bottom: 0.5rem;">🗑️ Data Cleared</h4>
+      <p>Removed ${result.deleted || 0} items from database</p>
+    </div>
+  `;
+  
+  resultContainer.innerHTML = html;
+  
+  // Clear after 5 seconds
+  setTimeout(() => {
+    resultContainer.innerHTML = '';
+  }, 5000);
+}
+
+// Set loading state
+function setLoadingState(isLoading) {
+  adminState.isLoading = isLoading;
+  // Could add global loading indicator here if needed
+}
+
+// Initialize when DOM is ready
+function onAdminReady() {
+  initializeAdmin();
+}
+
+// Wait for DOM to be ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', onAdminReady);
+} else {
+  onAdminReady();
+}
+
+// Make functions globally available
+window.previewCSV = previewCSV;
+window.importCSV = importCSV;
+window.loadSampleData = loadSampleData;
+window.loadImportHistory = loadImportHistory;
+window.clearAllData = clearAllData;

@@ -37,6 +37,15 @@ body {
   background: var(--gray-50);
 }
 
+/* Form label component */
+.form-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--gray-800);
+  font-size: 0.875rem;
+}
+
 /* Layout */
 .container {
   max-width: 1200px;
@@ -455,6 +464,32 @@ body {
   color: var(--gray-900);
 }
 
+/* Admin-specific styles */
+.csv-preview {
+  display: none;
+  background: var(--gray-50);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin: 2rem 0;
+}
+
+.csv-preview.show {
+  display: block;
+}
+
+.import-result,
+.sample-result,
+.clear-result,
+.import-history {
+  margin-top: 1rem;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 2rem;
+  color: var(--gray-500);
+}
+
 /* Toast Notifications */
 .toast-container {
   position: fixed;
@@ -587,5 +622,13 @@ body {
   
   .upload-zone {
     padding: 2rem 1rem;
+  }
+  
+  .import-section {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .sample-actions {
+    flex-direction: column;
   }
 }

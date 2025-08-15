@@ -1,179 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Admin - Medical Price Comparator</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin - Medical Price Comparator</title>
     <meta name="description" content="Medical Price Comparator Administration Panel">
-    
-    <!-- Custom CSS -->
     <link href="/static/css/style.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Header -->
-    <nav class="bg-white shadow-sm border-b border-gray-200">
+    <header class="header">
         <div class="container">
-            <div class="flex items-center justify-between py-4">
-                <div class="flex items-center gap-3">
-                    <span class="icon icon-cog text-2xl text-blue-600"></span>
-                    <h1 class="text-xl font-bold text-gray-900">Admin Panel</h1>
-                </div>
-                <a href="/index.html" class="btn btn-outline">
-                    ← Back to Main App
-                </a>
-            </div>
+            <h1 class="header-title">⚙️ Admin Panel</h1>
+            <a href="/index.html" class="button button-outline">← Back to Main App</a>
         </div>
-    </nav>
+    </header>
 
-    <div class="container mt-6">
-        <!-- Hero Section -->
-        <div class="card mb-6">
-            <div class="card-header text-center">
-                <h2 class="text-2xl font-bold mb-2">🛠️ Administration Panel</h2>
-                <p class="text-blue-100">Medical Price Comparator Administration</p>
-            </div>
-        </div>
+    <main class="main">
+        <div class="container">
+            
+            <!-- Hero -->
+            <section class="hero">
+                <h2>🛠️ Administration Panel</h2>
+                <p>Medical Price Comparator Administration</p>
+            </section>
 
-        <!-- CSV Import Section -->
-        <div class="card mb-6">
-            <div class="card-body">
-                <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <span class="icon icon-upload text-blue-600"></span>
-                    Import CSV Data
-                </h3>
-                <p class="text-gray-600 mb-6">Import medical analysis pricing data from CSV files</p>
-                
-                <div class="grid md:grid-cols-2 gap-6">
-                    <div class="form-group">
-                        <label class="form-label">Select CSV File:</label>
-                        <input type="file" 
-                               id="csvFile" 
-                               accept=".csv" 
-                               onchange="previewCSV()"
-                               class="form-input">
-                    </div>
+            <!-- CSV Import -->
+            <section class="card">
+                <header class="card-header">
+                    <h3>📤 Import CSV Data</h3>
+                </header>
+                <div class="card-content">
+                    <p style="margin-bottom: 2rem; color: var(--gray-600);">
+                        Import medical analysis pricing data from CSV files
+                    </p>
                     
-                    <div class="form-group">
-                        <label class="form-label">Provider:</label>
-                        <select id="provider" class="form-select">
-                            <option value="">Select provider...</option>
-                            <option value="reginamaria">Regina Maria</option>
-                            <option value="medlife">Medlife</option>
-                            <option value="synevo">Synevo</option>
-                            <option value="medicover">Medicover</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <!-- CSV Preview Section -->
-                <div id="csvPreview" class="mt-6 hidden">
-                    <div class="card">
-                        <div class="card-body">
-                            <h4 class="font-semibold mb-4">CSV Preview & Field Mapping</h4>
-                            <div id="previewContent" class="mb-4">
-                                <!-- Preview content will be populated here -->
-                            </div>
-                            <div id="mappingFields" class="mb-4">
-                                <!-- Mapping fields will be populated here -->
-                            </div>
-                            <div class="flex justify-end">
-                                <button onclick="importCSV()" class="btn btn-primary">
-                                    <span class="icon icon-upload"></span>
-                                    Import Data
-                                </button>
-                            </div>
+                    <div class="import-section" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                        <div class="file-upload">
+                            <label class="form-label">Select CSV File:</label>
+                            <input type="file" id="csvFile" accept=".csv" class="search-input" onchange="previewCSV()">
+                        </div>
+                        
+                        <div class="provider-selection">
+                            <label class="form-label">Provider:</label>
+                            <select id="provider" class="search-input">
+                                <option value="">Select provider...</option>
+                                <option value="reginamaria">Regina Maria</option>
+                                <option value="medlife">Medlife</option>
+                                <option value="synevo">Synevo</option>
+                                <option value="medicover">Medicover</option>
+                            </select>
                         </div>
                     </div>
+                    
+                    <!-- CSV Preview -->
+                    <div id="csvPreview" class="csv-preview">
+                        <!-- Preview content will be populated here -->
+                    </div>
+                    
+                    <div class="action-center">
+                        <button type="button" class="button button-primary" id="importButton" onclick="importCSV()">
+                            <span id="importIcon">📊</span>
+                            <span id="importText">Import Data</span>
+                        </button>
+                    </div>
+                    
+                    <div id="importResult" class="import-result"></div>
                 </div>
-                
-                <!-- Loading and Results -->
-                <div id="importLoading" class="mt-4 text-center hidden">
-                    <div class="loading-spinner inline-block mr-2"></div>
-                    <span>Importing data...</span>
+            </section>
+
+            <!-- Import History -->
+            <section class="card">
+                <header class="card-header">
+                    <h3>📈 Import History</h3>
+                </header>
+                <div class="card-content">
+                    <div class="action-center" style="margin-bottom: 2rem;">
+                        <button type="button" class="button button-secondary" onclick="loadImportHistory()">
+                            🔍 Load Import History
+                        </button>
+                    </div>
+                    
+                    <div id="importHistory" class="import-history">
+                        <!-- History will be populated here -->
+                    </div>
                 </div>
-                <div id="importResult" class="mt-4">
-                    <!-- Import results will be shown here -->
+            </section>
+
+            <!-- Sample Data -->
+            <section class="card">
+                <header class="card-header">
+                    <h3>📋 Sample Data</h3>
+                </header>
+                <div class="card-content">
+                    <p style="margin-bottom: 2rem; color: var(--gray-600);">
+                        Load sample data for testing
+                    </p>
+                    
+                    <div class="sample-actions" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
+                        <button type="button" class="button button-secondary" onclick="loadSampleData('reginamaria')">
+                            ✅ Load Regina Maria Sample
+                        </button>
+                        <button type="button" class="button button-secondary" onclick="loadSampleData('medlife')">
+                            ✅ Load Medlife Sample
+                        </button>
+                    </div>
+                    
+                    <div id="sampleResult" class="sample-result"></div>
                 </div>
-            </div>
+            </section>
+
+            <!-- Danger Zone -->
+            <section class="card">
+                <header class="card-header">
+                    <h3>⚠️ Danger Zone</h3>
+                </header>
+                <div class="card-content">
+                    <div class="danger-section" style="background: var(--danger); color: white; padding: 1.5rem; border-radius: var(--radius); margin-bottom: 2rem;">
+                        <p style="margin-bottom: 1rem; font-weight: 600;">
+                            ⚠️ Use these actions with extreme caution!
+                        </p>
+                        <button type="button" class="button button-danger" onclick="clearAllData()" style="background: white; color: var(--danger);">
+                            🗑️ Clear All Data
+                        </button>
+                    </div>
+                    
+                    <div id="clearResult" class="clear-result"></div>
+                </div>
+            </section>
         </div>
+    </main>
 
-        <!-- Import History Section -->
-        <div class="card mb-6">
-            <div class="card-body">
-                <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <span class="icon icon-chart text-blue-600"></span>
-                    Import History
-                </h3>
-                <button onclick="loadImportHistory()" class="btn btn-secondary mb-4">
-                    <span class="icon icon-search"></span>
-                    Load Import History
-                </button>
-                
-                <div id="historyLoading" class="text-center hidden">
-                    <div class="loading-spinner inline-block mr-2"></div>
-                    <span>Loading history...</span>
-                </div>
-                <div id="importHistory">
-                    <!-- History will be populated here -->
-                </div>
-            </div>
-        </div>
+    <!-- Toast container -->
+    <div class="toast-container" id="toastContainer"></div>
 
-        <!-- Sample Data Section -->
-        <div class="card mb-6">
-            <div class="card-body">
-                <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <span class="icon icon-file text-blue-600"></span>
-                    Sample Data
-                </h3>
-                <p class="text-gray-600 mb-6">Load sample data for testing</p>
-                
-                <div class="flex flex-wrap gap-3">
-                    <button onclick="loadSampleData('reginamaria')" class="btn btn-secondary">
-                        <span class="icon icon-check"></span>
-                        Load Regina Maria Sample
-                    </button>
-                    <button onclick="loadSampleData('medlife')" class="btn btn-secondary">
-                        <span class="icon icon-check"></span>
-                        Load Medlife Sample
-                    </button>
-                </div>
-                
-                <div id="sampleLoading" class="mt-4 text-center hidden">
-                    <div class="loading-spinner inline-block mr-2"></div>
-                    <span>Loading sample data...</span>
-                </div>
-                <div id="sampleResult" class="mt-4">
-                    <!-- Sample data results will be shown here -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Danger Zone Section -->
-        <div class="card mb-6">
-            <div class="card-body">
-                <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <span class="icon icon-warning text-red-600"></span>
-                    Danger Zone
-                </h3>
-                <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <p class="text-red-800 mb-4 font-medium">⚠️ Use these actions with extreme caution!</p>
-                    <button onclick="clearAllData()" class="btn btn-danger">
-                        <span class="icon icon-trash"></span>
-                        Clear All Data
-                    </button>
-                </div>
-                <div id="clearResult" class="mt-4">
-                    <!-- Clear results will be shown here -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Notifications Container -->
-    <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-3"></div>
-
-    <!-- Admin JavaScript -->
+    <!-- Scripts -->
+    <script src="/static/js/components.js"></script>
     <script src="/static/js/admin.js"></script>
 </body>
 </html>
