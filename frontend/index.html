@@ -106,11 +106,7 @@
                         </button>
                     </div>
                     <div id="ocrResultsContent" class="space-y-4 hidden">
-                        <div id="ocrResultsList" class="space-y-3">
-                            <!-- Results will be populated here -->
-                        </div>
-                        
-                        <!-- Unmatched Items (inside collapsible content) -->
+                        <!-- Unmatched Items FIRST (inside collapsible content) -->
                         <div id="unmatchedItems" class="hidden">
                             <h5 class="font-semibold mb-3 flex items-center gap-2">
                                 <span class="icon icon-warning text-yellow-600"></span>
@@ -119,6 +115,11 @@
                             <div id="unmatchedItemsList" class="space-y-3">
                                 <!-- Unmatched items will be populated here -->
                             </div>
+                        </div>
+                        
+                        <!-- Matched Results SECOND -->
+                        <div id="ocrResultsList" class="space-y-3">
+                            <!-- Results will be populated here -->
                         </div>
                     </div>
                 </div>

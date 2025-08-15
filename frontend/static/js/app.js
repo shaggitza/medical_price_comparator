@@ -181,31 +181,7 @@ function updateOCRResults() {
     if (hasOCRResults || hasUnmatchedItems) {
         resultsDiv.classList.remove('hidden');
         
-        // Update matched results
-        if (hasOCRResults) {
-            let html = '';
-            appState.ocrResults.forEach(result => {
-                html += `
-                    <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <span class="font-medium">${result.name}</span>
-                                <span class="text-sm text-gray-600 ml-2">${result.category || ''}</span>
-                            </div>
-                            <span class="status-badge status-success">
-                                <span class="icon icon-check"></span>
-                                Matched
-                            </span>
-                        </div>
-                    </div>
-                `;
-            });
-            resultsList.innerHTML = html;
-        } else {
-            resultsList.innerHTML = '';
-        }
-        
-        // Update unmatched items
+        // Update unmatched items FIRST (user requirement)
         if (hasUnmatchedItems) {
             let html = '';
             appState.unmatchedItems.forEach(item => {
@@ -228,7 +204,8 @@ function updateOCRResults() {
                                        autocomplete="off"
                                        oninput="handleTableSearchInput(${item.id}, this.value)"
                                        onkeyup="handleTableSearchInput(${item.id}, this.value)"
-                                       onfocus="this.select(); handleTableSearchInput(${item.id}, this.value)">
+                                       onfocus="this.select(); handleTableSearchInput(${item.id}, this.value)"
+                                       onclick="handleTableSearchClick(${item.id}, this.value)">
                                 <div id="tableSuggestions_${item.id}" class="table-suggestions"></div>
                             </div>
                             <div class="flex gap-2">
@@ -245,6 +222,30 @@ function updateOCRResults() {
             unmatchedDiv.classList.remove('hidden');
         } else {
             unmatchedDiv.classList.add('hidden');
+        }
+        
+        // Update matched results SECOND (after unmatched items)
+        if (hasOCRResults) {
+            let html = '';
+            appState.ocrResults.forEach(result => {
+                html += `
+                    <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="font-medium">${result.name}</span>
+                                <span class="text-sm text-gray-600 ml-2">${result.category || ''}</span>
+                            </div>
+                            <span class="status-badge status-success">
+                                <span class="icon icon-check"></span>
+                                Matched
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+            resultsList.innerHTML = html;
+        } else {
+            resultsList.innerHTML = '';
         }
         
         // Update toggle button state
@@ -316,6 +317,19 @@ function handleTableSearchInput(pendingId, query) {
         console.log(`Fetching suggestions for ${pendingId} with query: "${query}"`);
         fetchTableSuggestions(pendingId, query);
     }, 200);
+}
+
+// Handle click on table search input - trigger suggestions immediately
+function handleTableSearchClick(pendingId, query) {
+    console.log(`Table search click for ${pendingId}: "${query}"`);
+    
+    query = query.trim();
+    
+    // Always show suggestions on click, even for short queries
+    if (query.length >= 1) {
+        console.log(`Fetching suggestions on click for ${pendingId} with query: "${query}"`);
+        fetchTableSuggestions(pendingId, query);
+    }
 }
 
 async function fetchTableSuggestions(pendingId, query) {
