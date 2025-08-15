@@ -1,215 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Medical Price Comparator</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Medical Price Comparator</title>
     <meta name="description" content="Compare medical analysis prices across Romanian healthcare providers">
-    
-    <!-- Custom CSS -->
     <link href="/static/css/style.css" rel="stylesheet">
-    
-    <!-- Simplified Alpine.js functionality with vanilla JS -->
-    <script>
-        // Simple Alpine.js-like functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            window.Alpine = {
-                data: function(fn) {
-                    return fn();
-                }
-            };
-        });
-    </script>
 </head>
 <body>
-    <!-- Header -->
-    <nav class="bg-white shadow-sm border-b border-gray-200">
+    <header class="header">
         <div class="container">
-            <div class="flex items-center justify-between py-4">
-                <div class="flex items-center gap-3">
-                    <span class="icon icon-hospital text-2xl text-blue-600"></span>
-                    <h1 class="text-xl font-bold text-gray-900">Medical Price Comparator</h1>
-                </div>
-                <a href="/admin.html" class="btn btn-secondary">
-                    <span class="icon icon-cog"></span>
-                    Admin Panel
-                </a>
-            </div>
+            <h1 class="header-title">🏥 Medical Price Comparator</h1>
+            <a href="/admin.html" class="button button-admin">⚙️ Admin</a>
         </div>
-    </nav>
+    </header>
 
-    <div class="container mt-6">
-        <!-- Hero Section -->
-        <div class="card mb-6">
-            <div class="card-header text-center">
-                <h2 class="text-2xl font-bold mb-2">🏥 Medical Analysis Price Comparison</h2>
-                <p class="text-blue-100">Compare medical analysis prices across Romanian healthcare providers</p>
-            </div>
-        </div>
+    <main class="main">
+        <div class="container">
+            
+            <!-- Hero -->
+            <section class="hero">
+                <h2>Medical Analysis Price Comparison</h2>
+                <p>Compare prices across Romanian healthcare providers</p>
+            </section>
 
-        <!-- OCR Upload Section -->
-        <div class="card mb-6">
-            <div class="card-body">
-                <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <span class="icon icon-upload text-blue-600"></span>
-                    Upload Doctor's Recommendation (OCR)
-                </h3>
-                
-                <div class="upload-area" id="uploadArea">
-                    <div class="flex flex-col items-center gap-4">
-                        <span class="icon icon-cloud text-4xl text-blue-600"></span>
-                        <div>
-                            <p class="font-semibold mb-2">Drag & drop your medical recommendation here</p>
-                            <p class="text-sm text-gray-600 mb-4">or click to browse files</p>
-                            <input type="file" 
-                                   id="imageFile" 
-                                   accept="image/*" 
-                                   class="hidden"
-                                   onchange="handleFileSelect(event)">
-                            <label for="imageFile" class="btn btn-outline">
-                                <span class="icon icon-folder"></span>
-                                Choose File
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="flex items-center justify-center mt-4 hidden" id="selectedFileInfo">
-                    <div class="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                        <span class="icon icon-file text-blue-600"></span>
-                        <span class="text-sm font-medium" id="selectedFileName"></span>
-                        <button onclick="clearFile()" class="text-red-600 hover:opacity-75">
-                            <span class="icon icon-times"></span>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="flex justify-center mt-4">
-                    <button onclick="processOCR()" 
-                            id="processBtn"
-                            class="btn btn-primary">
-                        <span class="icon icon-magic" id="processIcon"></span>
-                        <span id="processText">Process with AI</span>
-                    </button>
-                </div>
-                
-                <!-- OCR Results -->
-                <div id="ocrResults" class="mt-6 hidden">
-                    <div class="flex items-center justify-between mb-3">
-                        <h4 class="font-semibold flex items-center gap-2">
-                            <span class="icon icon-check text-green-600"></span>
-                            OCR Processing Results
-                        </h4>
-                        <button id="ocrToggleBtn" onclick="toggleOCRResults()" class="btn btn-sm btn-outline">
-                            <span id="ocrToggleIcon" class="icon icon-chevron-down"></span>
-                            <span id="ocrToggleText">Expand</span>
-                        </button>
-                    </div>
-                    <div id="ocrResultsContent" class="space-y-4 hidden">
-                        <!-- Unmatched Items FIRST (inside collapsible content) -->
-                        <div id="unmatchedItems" class="hidden">
-                            <h5 class="font-semibold mb-3 flex items-center gap-2">
-                                <span class="icon icon-warning text-yellow-600"></span>
-                                Items Requiring Manual Resolution
-                            </h5>
-                            <div id="unmatchedItemsList" class="space-y-3">
-                                <!-- Unmatched items will be populated here -->
-                            </div>
-                        </div>
-                        
-                        <!-- Matched Results SECOND -->
-                        <div id="ocrResultsList" class="space-y-3">
-                            <!-- Results will be populated here -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-
-
-        <!-- Comparison Table Section -->
-        <div class="card mb-6">
-            <div class="card-body">
-                <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <span class="icon icon-table text-blue-600"></span>
-                    Analysis Comparison Table
-                </h3>
-                
-                <!-- Search within Table -->
-                <div class="mb-4">
-                    <div class="relative">
-                        <div class="flex gap-3">
-                            <div class="flex-1 relative">
-                                <input type="text" 
-                                       id="searchInput"
-                                       oninput="handleSearchInput(event)"
-                                       onfocus="showSuggestions()"
-                                       onkeydown="handleSearchKeydown(event)"
-                                       placeholder="Start typing analysis name..."
-                                       class="form-input"
-                                       autocomplete="off">
-                                
-                                <!-- Suggestions Dropdown -->
-                                <div id="searchSuggestions" class="suggestions-dropdown hidden">
-                                    <!-- Suggestions will be populated here -->
-                                </div>
-                            </div>
-                            <button onclick="addAnalysisFromSearch()" 
-                                    class="btn btn-primary">
-                                <span class="icon icon-plus"></span>
-                                Add to Table
+            <!-- OCR Upload -->
+            <section class="card">
+                <header class="card-header">
+                    <h3>📤 Upload Doctor's Recommendation</h3>
+                </header>
+                <div class="card-content">
+                    <div class="upload-zone" id="uploadZone">
+                        <div class="upload-content">
+                            <div class="upload-icon">☁️</div>
+                            <p>Drag & drop your file here or click to browse</p>
+                            <input type="file" id="fileInput" accept="image/*" hidden>
+                            <button type="button" class="button button-outline" onclick="document.getElementById('fileInput').click()">
+                                📁 Choose File
                             </button>
                         </div>
                     </div>
-                </div>
-                
-                <div id="emptyTable">
-                    <div class="text-center py-12">
-                        <span class="icon icon-chart text-6xl text-gray-300 mb-4"></span>
-                        <p class="text-gray-600">Add analyses using the search box above to start comparing prices.</p>
+                    
+                    <div class="file-info" id="fileInfo">
+                        <span class="file-name" id="fileName"></span>
+                        <button type="button" class="file-remove" onclick="clearFile()">❌</button>
                     </div>
-                </div>
-
-                <div id="analysisTableContainer" class="hidden">
-                    <div class="overflow-x-auto">
-                        <table class="table-modern" id="analysisTable">
-                            <thead>
-                                <tr>
-                                    <th>Analysis</th>
-                                    <th>Reginamaria</th>
-                                    <th>Medlife</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="analysisTableBody">
-                                <!-- Table rows will be populated here -->
-                            </tbody>
-                        </table>
+                    
+                    <div class="action-center">
+                        <button type="button" class="button button-primary" id="processButton" onclick="processOCR()">
+                            <span id="processIcon">✨</span>
+                            <span id="processText">Process with AI</span>
+                        </button>
                     </div>
-                </div>
-
-                <!-- Totals Section -->
-                <div id="totalsSection" class="mt-6 hidden">
-                    <div class="card">
-                        <div class="card-body">
-                            <h4 class="font-semibold mb-4 flex items-center gap-2">
-                                <span class="icon icon-calculator text-green-600"></span>
-                                Price Totals
-                            </h4>
-                            <div id="totalsGrid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <!-- Totals will be populated here -->
+                    
+                    <!-- OCR Results -->
+                    <div class="ocr-results" id="ocrResults">
+                        <header class="ocr-results-header">
+                            <h4>✅ OCR Results</h4>
+                            <button type="button" class="toggle-button" id="ocrToggle" onclick="toggleOCRResults()">
+                                <span id="ocrToggleIcon">🔽</span>
+                                <span id="ocrToggleText">Expand</span>
+                            </button>
+                        </header>
+                        <div class="ocr-results-content" id="ocrResultsContent">
+                            <!-- Unmatched items -->
+                            <div class="unmatched-section" id="unmatchedSection">
+                                <h5>⚠️ Items Requiring Manual Resolution</h5>
+                                <div id="unmatchedList"></div>
+                            </div>
+                            <!-- Matched items -->
+                            <div class="matched-section" id="matchedSection">
+                                <h5>Detected Analyses</h5>
+                                <div id="matchedList"></div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
+
+            <!-- Analysis Table -->
+            <section class="card">
+                <header class="card-header">
+                    <h3>📊 Analysis Comparison Table</h3>
+                </header>
+                <div class="card-content">
+                    <div class="search-section">
+                        <div class="search-container">
+                            <input type="text" 
+                                   class="search-input" 
+                                   id="searchInput"
+                                   placeholder="Search medical analyses..."
+                                   autocomplete="off">
+                            <div class="suggestions" id="suggestions"></div>
+                        </div>
+                        <button type="button" class="button button-primary" onclick="addToTable()">
+                            ➕ Add to Table
+                        </button>
+                    </div>
+                    
+                    <div class="table-container" id="tableContainer">
+                        <div class="empty-state" id="emptyState">
+                            <div class="empty-icon">📈</div>
+                            <p>Add analyses to start comparing prices</p>
+                        </div>
+                        
+                        <div class="table-wrapper" id="tableWrapper">
+                            <table class="comparison-table" id="comparisonTable">
+                                <thead>
+                                    <tr>
+                                        <th>Analysis</th>
+                                        <th>Reginamaria</th>
+                                        <th>Medlife</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody"></tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="totals-section" id="totalsSection">
+                            <h4>🧮 Price Totals</h4>
+                            <div class="totals-grid" id="totalsGrid"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </div>
-    </div>
+    </main>
 
-    <!-- Toast Notifications Container -->
-    <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-3"></div>
+    <!-- Toast container -->
+    <div class="toast-container" id="toastContainer"></div>
 
+    <!-- Scripts -->
+    <script src="/static/js/components.js"></script>
+    <script src="/static/js/ocr.js"></script>
+    <script src="/static/js/search.js"></script>
+    <script src="/static/js/table.js"></script>
     <script src="/static/js/app.js"></script>
 </body>
 </html>
