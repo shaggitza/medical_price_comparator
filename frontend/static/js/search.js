@@ -90,14 +90,14 @@ function debounceSearch(query) {
 // Search for analyses
 async function searchAnalyses(query) {
   try {
-    const response = await fetch(`${API_BASE_URL}/search?q=${encodeURIComponent(query)}`);
+    const response = await fetch(`${API_BASE_URL}/analyses/search?query=${encodeURIComponent(query)}`);
     
     if (!response.ok) {
       throw new Error('Search request failed');
     }
     
     const data = await response.json();
-    searchState.suggestions = data.suggestions || [];
+    searchState.suggestions = data.results || [];
     displaySuggestions();
     
   } catch (error) {
@@ -110,7 +110,7 @@ async function searchAnalyses(query) {
 // Search suggestions for unmatched items (used by OCR module)
 async function searchSuggestions(query, suggestionsContainer, onSelect) {
   try {
-    const response = await fetch(`${API_BASE_URL}/suggestions?q=${encodeURIComponent(query)}`);
+    const response = await fetch(`${API_BASE_URL}/analyses/suggestions?query=${encodeURIComponent(query)}`);
     
     if (!response.ok) {
       throw new Error('Suggestions request failed');

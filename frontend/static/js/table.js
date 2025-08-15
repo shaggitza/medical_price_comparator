@@ -25,20 +25,32 @@ async function addAnalysisToComparisonTable(analysisName) {
   }
   
   try {
-    // Fetch price data
-    const response = await fetch(`${API_BASE_URL}/analysis/${encodeURIComponent(analysisName)}/prices`);
+    // Use the compare endpoint to get analysis data with prices
+    const response = await fetch(`${API_BASE_URL}/analyses/compare`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        analysis_names: [analysisName],
+        provider_filter: null
+      })
+    });
     
-    let priceData = {};
+    let analysisData = null;
     if (response.ok) {
-      priceData = await response.json();
+      const data = await response.json();
+      if (data.results && data.results.length > 0) {
+        analysisData = data.results[0];
+      }
     }
     
     // Add to table state
     const analysis = {
       name: analysisName,
       prices: {
-        reginamaria: priceData.reginamaria || null,
-        medlife: priceData.medlife || null
+        reginamaria: analysisData?.prices?.reginamaria?.normal?.amount || null,
+        medlife: analysisData?.prices?.medlife?.normal?.amount || null
       }
     };
     
