@@ -20,7 +20,15 @@ function initializeFileUpload() {
   uploadZone.addEventListener('dragover', handleDragOver);
   uploadZone.addEventListener('dragleave', handleDragLeave);
   uploadZone.addEventListener('drop', handleFileDrop);
-  uploadZone.addEventListener('click', () => fileInput.click());
+  
+  // Click handler for upload zone (but not for the button inside it)
+  uploadZone.addEventListener('click', (event) => {
+    // Don't trigger if the click is on the button or its children
+    if (event.target.closest('.button')) {
+      return;
+    }
+    fileInput.click();
+  });
 }
 
 function handleFileSelect(event) {

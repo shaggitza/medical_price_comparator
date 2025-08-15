@@ -35,7 +35,7 @@
                             <div class="upload-icon">☁️</div>
                             <p>Drag & drop your file here or click to browse</p>
                             <input type="file" id="fileInput" accept="image/*" hidden>
-                            <button type="button" class="button button-outline" onclick="document.getElementById('fileInput').click()">
+                            <button type="button" class="button button-outline" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">
                                 📁 Choose File
                             </button>
                         </div>
