@@ -6,8 +6,6 @@ let tableState = {
   totals: {}
 };
 
-const API_BASE_URL = '/api/v1';
-
 // Initialize table functionality
 function initializeTable() {
   updateTableDisplay();

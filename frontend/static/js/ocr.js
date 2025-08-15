@@ -101,7 +101,7 @@ async function processOCR() {
   
   try {
     const formData = new FormData();
-    formData.append('file', ocrState.selectedFile);
+    formData.append('image', ocrState.selectedFile);
     
     const response = await fetch('/api/v1/ocr/process', {
       method: 'POST',

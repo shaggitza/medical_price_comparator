@@ -7,8 +7,6 @@ let searchState = {
   selectedIndex: -1
 };
 
-const API_BASE_URL = '/api/v1';
-
 // Initialize search functionality
 function initializeSearch() {
   const searchInput = document.getElementById('searchInput');

@@ -1,5 +1,8 @@
 // UI Components - Reusable component functions
 
+// Global configuration
+const API_BASE_URL = '/api/v1';
+
 // Toast notification component
 function showToast(message, type = 'info', duration = 3000) {
   const container = document.getElementById('toastContainer');
@@ -209,4 +212,17 @@ function setButtonLoading(buttonId, isLoading = true) {
     if (icon) icon.textContent = '✨';
     if (text) text.textContent = 'Process with AI';
   }
+}
+
+// Initialize components module
+function initializeComponents() {
+  // Set up toast container if it doesn't exist
+  if (!document.getElementById('toastContainer')) {
+    const container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
+  
+  console.log('Components module initialized');
 }
