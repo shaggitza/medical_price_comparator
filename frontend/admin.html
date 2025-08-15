@@ -1,512 +1,140 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Admin - Medical Price Comparator</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 20px; 
-            background-color: #f5f5f5;
-        }
-        .container { 
-            max-width: 1000px; 
-            margin: 0 auto; 
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .header { 
-            text-align: center; 
-            margin-bottom: 30px; 
-            color: #333;
-        }
-        .section { 
-            margin-bottom: 40px; 
-            padding: 20px; 
-            border: 1px solid #ddd; 
-            border-radius: 5px;
-            background: #fafafa;
-        }
-        .section h3 {
-            margin-top: 0;
-            color: #555;
-        }
-        input, select, button { 
-            padding: 10px; 
-            margin: 5px; 
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        button { 
-            background: #007bff; 
-            color: white; 
-            border: none; 
-            cursor: pointer; 
-            font-weight: bold;
-        }
-        button:hover { 
-            background: #0056b3; 
-        }
-        button.danger {
-            background: #dc3545;
-        }
-        button.danger:hover {
-            background: #c82333;
-        }
-        .file-input { 
-            margin: 10px 0; 
-        }
-        .mapping-container {
-            display: none;
-            margin-top: 20px;
-            padding: 15px;
-            background: white;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        .mapping-row {
-            display: flex;
-            align-items: center;
-            margin: 5px 0;
-        }
-        .mapping-row label {
-            width: 150px;
-            font-weight: bold;
-        }
-        .mapping-row select {
-            flex: 1;
-            margin-left: 10px;
-        }
-        .preview-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-            font-size: 12px;
-        }
-        .preview-table th, .preview-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        .preview-table th {
-            background-color: #f2f2f2;
-        }
-        .result {
-            margin-top: 15px;
-            padding: 15px;
-            border-radius: 4px;
-        }
-        .result.success {
-            background-color: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-        }
-        .result.error {
-            background-color: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-        }
-        
-        .success-note {
-            font-weight: bold;
-            margin-top: 10px;
-            padding: 8px;
-            background: rgba(21, 87, 36, 0.1);
-            border-radius: 4px;
-        }
-        .loading {
-            display: none;
-            text-align: center;
-            color: #666;
-        }
-        .back-link {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: #007bff;
-            text-decoration: none;
-        }
-        .back-link:hover {
-            text-decoration: underline;
-        }
-    </style>
+    <title>Admin - Medical Price Comparator</title>
+    <meta name="description" content="Medical Price Comparator Administration Panel">
+    <link href="/static/css/style.css" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <a href="/index.html" class="back-link">← Back to Main App</a>
-        
-        <div class="header">
-            <h1>🛠️ Admin Panel</h1>
-            <p>Medical Price Comparator Administration</p>
+    <header class="header">
+        <div class="container">
+            <h1 class="header-title">⚙️ Admin Panel</h1>
+            <a href="/index.html" class="button button-outline">← Back to Main App</a>
         </div>
-        
-        <div class="section">
-            <h3>📊 Import CSV Data</h3>
-            <p>Import medical analysis pricing data from CSV files</p>
+    </header>
+
+    <main class="main">
+        <div class="container">
             
-            <div class="file-input">
-                <label for="csvFile"><strong>Select CSV File:</strong></label>
-                <input type="file" id="csvFile" accept=".csv" onchange="previewCSV()">
-            </div>
-            
-            <div class="file-input">
-                <label for="provider"><strong>Provider:</strong></label>
-                <select id="provider">
-                    <option value="">Select provider...</option>
-                    <option value="reginamaria">Regina Maria</option>
-                    <option value="medlife">Medlife</option>
-                    <option value="synevo">Synevo</option>
-                    <option value="medicover">Medicover</option>
-                </select>
-            </div>
-            
-            <div id="csvPreview" class="mapping-container">
-                <h4>CSV Preview & Field Mapping</h4>
-                <div id="previewContent"></div>
-                <div id="mappingFields"></div>
-                <button onclick="importCSV()">Import Data</button>
-            </div>
-            
-            <div id="importLoading" class="loading">Importing data...</div>
-            <div id="importResult"></div>
-        </div>
-        
-        <div class="section">
-            <h3>📈 Import History</h3>
-            <button onclick="loadImportHistory()">Load Import History</button>
-            <div id="historyLoading" class="loading">Loading history...</div>
-            <div id="importHistory"></div>
-        </div>
-        
-        <div class="section">
-            <h3>🗂️ Sample Data</h3>
-            <p>Load sample data for testing</p>
-            <button onclick="loadSampleData('reginamaria')">Load Regina Maria Sample</button>
-            <button onclick="loadSampleData('medlife')">Load Medlife Sample</button>
-            <div id="sampleLoading" class="loading">Loading sample data...</div>
-            <div id="sampleResult"></div>
-        </div>
-        
-        <div class="section">
-            <h3>⚠️ Danger Zone</h3>
-            <p style="color: red;">Use these actions with extreme caution!</p>
-            <button class="danger" onclick="clearAllData()">Clear All Data</button>
-            <div id="clearResult"></div>
-        </div>
-    </div>
-    
-    <script>
-        // Configuration
-        const API_BASE_URL = '/api/v1';
-        let csvPreviewData = null;
-        let isPreviewLoading = false;
-        
-        async function previewCSV() {
-            const fileInput = document.getElementById('csvFile');
-            const previewContainer = document.getElementById('csvPreview');
-            
-            // Prevent multiple simultaneous requests
-            if (isPreviewLoading) {
-                console.log('Preview already loading, skipping');
-                return;
-            }
-            
-            if (!fileInput.files[0]) {
-                previewContainer.style.display = 'none';
-                return;
-            }
-            
-            // Show loading state
-            isPreviewLoading = true;
-            const previewContent = document.getElementById('previewContent');
-            previewContent.innerHTML = '<div class="loading">Loading CSV preview...</div>';
-            previewContainer.style.display = 'block';
-            
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-            
-            try {
-                const response = await fetch(`${API_BASE_URL}/admin/csv-preview`, {
-                    method: 'POST',
-                    body: formData,
-                    signal: AbortSignal.timeout(30000) // 30 second timeout
-                });
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || 'Failed to preview CSV');
-                }
-                
-                csvPreviewData = await response.json();
-                displayCSVPreview(csvPreviewData);
-                previewContainer.style.display = 'block';
-            } catch (error) {
-                console.error('CSV preview error:', error);
-                previewContent.innerHTML = `<div class="result error">Error previewing CSV: ${error.message}</div>`;
-            } finally {
-                isPreviewLoading = false;
-            }
-        }
-        
-        function displayCSVPreview(data) {
-            const previewContent = document.getElementById('previewContent');
-            const mappingFields = document.getElementById('mappingFields');
-            
-            // Display sample rows
-            let html = '<h5>Sample Data:</h5>';
-            html += '<table class="preview-table"><thead><tr>';
-            
-            data.fieldnames.forEach(field => {
-                html += `<th>${field}</th>`;
-            });
-            html += '</tr></thead><tbody>';
-            
-            data.sample_rows.forEach(row => {
-                html += '<tr>';
-                data.fieldnames.forEach(field => {
-                    html += `<td>${row[field] || ''}</td>`;
-                });
-                html += '</tr>';
-            });
-            html += '</tbody></table>';
-            
-            previewContent.innerHTML = html;
-            
-            // Create field mapping
-            const mapping = data.suggested_mapping;
-            let mappingHTML = '<h5>Field Mapping:</h5>';
-            
-            const requiredFields = [
-                {key: 'name', label: 'Analysis Name', required: true},
-                {key: 'price', label: 'Price (Normal)', required: true},
-                {key: 'currency', label: 'Currency', required: false},
-                {key: 'category', label: 'Category', required: false},
-                {key: 'price_type', label: 'Price Type', required: false},
-                {key: 'alternative_names', label: 'Alternative Names', required: false},
-                {key: 'description', label: 'Description', required: false}
-            ];
-            
-            requiredFields.forEach(field => {
-                mappingHTML += `
-                    <div class="mapping-row">
-                        <label>${field.label}${field.required ? ' *' : ''}:</label>
-                        <select id="mapping_${field.key}">
-                            <option value="">-- Select Field --</option>
-                `;
-                
-                data.fieldnames.forEach(csvField => {
-                    const selected = mapping[field.key] === csvField ? 'selected' : '';
-                    mappingHTML += `<option value="${csvField}" ${selected}>${csvField}</option>`;
-                });
-                
-                mappingHTML += '</select></div>';
-            });
-            
-            mappingFields.innerHTML = mappingHTML;
-        }
-        
-        async function importCSV() {
-            const fileInput = document.getElementById('csvFile');
-            const providerSelect = document.getElementById('provider');
-            const loading = document.getElementById('importLoading');
-            const result = document.getElementById('importResult');
-            
-            if (!fileInput.files[0]) {
-                alert('Please select a CSV file');
-                return;
-            }
-            
-            if (!providerSelect.value) {
-                alert('Please select a provider');
-                return;
-            }
-            
-            // Collect field mapping
-            const mapping = {};
-            const requiredFields = ['name', 'price'];
-            
-            for (let field of requiredFields) {
-                const selectElement = document.getElementById(`mapping_${field}`);
-                if (!selectElement.value) {
-                    alert(`Please map the required field: ${field}`);
-                    return;
-                }
-                mapping[field] = selectElement.value;
-            }
-            
-            // Optional fields
-            const optionalFields = ['currency', 'category', 'price_type', 'alternative_names', 'description'];
-            for (let field of optionalFields) {
-                const selectElement = document.getElementById(`mapping_${field}`);
-                if (selectElement.value) {
-                    mapping[field] = selectElement.value;
-                }
-            }
-            
-            loading.style.display = 'block';
-            result.innerHTML = '';
-            
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-            formData.append('provider', providerSelect.value);
-            formData.append('field_mapping', JSON.stringify(mapping));
-            
-            try {
-                const response = await fetch(`${API_BASE_URL}/admin/import-csv`, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    result.innerHTML = `
-                        <div class="result success">
-                            <h4>Import Successful!</h4>
-                            <p>Total records: ${data.total_records}</p>
-                            <p>Successful imports: ${data.successful_imports}</p>
-                            <p>Errors: ${data.errors}</p>
-                            ${data.error_details && data.error_details.length > 0 ? 
-                                `<details><summary>Error Details</summary><ul>${data.error_details.map(e => `<li>${e}</li>`).join('')}</ul></details>` 
-                                : ''}
-                        </div>
-                    `;
-                } else {
-                    result.innerHTML = `<div class="result error">Import failed: ${data.detail}</div>`;
-                }
-            } catch (error) {
-                result.innerHTML = `<div class="result error">Import failed: ${error.message}</div>`;
-            } finally {
-                loading.style.display = 'none';
-            }
-        }
-        
-        async function loadImportHistory() {
-            const loading = document.getElementById('historyLoading');
-            const history = document.getElementById('importHistory');
-            
-            loading.style.display = 'block';
-            
-            try {
-                const response = await fetch(`${API_BASE_URL}/admin/import-history`);
-                const data = await response.json();
-                
-                let html = '<h4>Recent Imports</h4>';
-                
-                if (data.imports && data.imports.length > 0) {
-                    html += '<table class="preview-table"><thead><tr><th>Date</th><th>File</th><th>Provider</th><th>Total</th><th>Success</th><th>Errors</th></tr></thead><tbody>';
+            <!-- Hero -->
+            <section class="hero">
+                <h2>🛠️ Administration Panel</h2>
+                <p>Medical Price Comparator Administration</p>
+            </section>
+
+            <!-- CSV Import -->
+            <section class="card">
+                <header class="card-header">
+                    <h3>📤 Import CSV Data</h3>
+                </header>
+                <div class="card-content">
+                    <p style="margin-bottom: 2rem; color: var(--gray-600);">
+                        Import medical analysis pricing data from CSV files
+                    </p>
                     
-                    data.imports.forEach(imp => {
-                        html += `
-                            <tr>
-                                <td>${new Date(imp.import_date).toLocaleString()}</td>
-                                <td>${imp.filename}</td>
-                                <td>${imp.provider}</td>
-                                <td>${imp.total_records}</td>
-                                <td>${imp.successful_imports}</td>
-                                <td>${imp.errors ? imp.errors.length : 0}</td>
-                            </tr>
-                        `;
-                    });
-                    
-                    html += '</tbody></table>';
-                } else {
-                    html += '<p>No import history found.</p>';
-                }
-                
-                history.innerHTML = html;
-            } catch (error) {
-                history.innerHTML = `<div class="result error">Failed to load history: ${error.message}</div>`;
-            } finally {
-                loading.style.display = 'none';
-            }
-        }
-        
-        async function loadSampleData(provider) {
-            const loading = document.getElementById('sampleLoading');
-            const result = document.getElementById('sampleResult');
-            
-            loading.style.display = 'block';
-            result.innerHTML = '';
-            
-            try {
-                const response = await fetch(`/api/v1/admin/load-sample-data/${provider}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    result.innerHTML = `
-                        <div class="result success">
-                            <h4>✅ Sample Data Loaded Successfully</h4>
-                            <p><strong>Provider:</strong> ${data.provider}</p>
-                            <p><strong>Records Processed:</strong> ${data.total_records}</p>
-                            <p><strong>Successfully Imported:</strong> ${data.successful_imports}</p>
-                            ${data.errors > 0 ? `<p><strong>Errors:</strong> ${data.errors}</p>` : ''}
-                            ${data.error_details && data.error_details.length > 0 ? 
-                                `<details><summary>Error Details</summary><ul>${data.error_details.map(err => `<li>${err}</li>`).join('')}</ul></details>` : 
-                                ''
-                            }
-                            <p class="success-note">Sample data has been loaded into the database and is now available for search and comparison.</p>
+                    <div class="import-section" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                        <div class="file-upload">
+                            <label class="form-label">Select CSV File:</label>
+                            <input type="file" id="csvFile" accept=".csv" class="search-input" onchange="previewCSV()">
                         </div>
-                    `;
-                } else {
-                    result.innerHTML = `
-                        <div class="result error">
-                            <h4>❌ Failed to Load Sample Data</h4>
-                            <p>${data.detail || 'Unknown error occurred'}</p>
+                        
+                        <div class="provider-selection">
+                            <label class="form-label">Provider:</label>
+                            <select id="provider" class="search-input">
+                                <option value="">Select provider...</option>
+                                <option value="reginamaria">Regina Maria</option>
+                                <option value="medlife">Medlife</option>
+                                <option value="synevo">Synevo</option>
+                                <option value="medicover">Medicover</option>
+                            </select>
                         </div>
-                    `;
-                }
-            } catch (error) {
-                result.innerHTML = `
-                    <div class="result error">
-                        <h4>❌ Error Loading Sample Data</h4>
-                        <p>Network error: ${error.message}</p>
-                        <p>Please check your connection and try again.</p>
                     </div>
-                `;
-            } finally {
-                loading.style.display = 'none';
-            }
-        }
-        
-        async function clearAllData() {
-            const result = document.getElementById('clearResult');
-            
-            if (!confirm('Are you sure you want to delete ALL analysis data? This cannot be undone!')) {
-                return;
-            }
-            
-            const confirmation = prompt('Type "DELETE_ALL_DATA" to confirm:');
-            if (confirmation !== 'DELETE_ALL_DATA') {
-                result.innerHTML = '<div class="result error">Confirmation failed. Data not deleted.</div>';
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${API_BASE_URL}/admin/clear-data?confirm=DELETE_ALL_DATA`, {
-                    method: 'DELETE'
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    result.innerHTML = `<div class="result success">${data.message}</div>`;
-                } else {
-                    result.innerHTML = `<div class="result error">Failed to clear data: ${data.detail}</div>`;
-                }
-            } catch (error) {
-                result.innerHTML = `<div class="result error">Failed to clear data: ${error.message}</div>`;
-            }
-        }
-    </script>
+                    
+                    <!-- CSV Preview -->
+                    <div id="csvPreview" class="csv-preview">
+                        <!-- Preview content will be populated here -->
+                    </div>
+                    
+                    <div class="action-center">
+                        <button type="button" class="button button-primary" id="importButton" onclick="importCSV()">
+                            <span id="importIcon">📊</span>
+                            <span id="importText">Import Data</span>
+                        </button>
+                    </div>
+                    
+                    <div id="importResult" class="import-result"></div>
+                </div>
+            </section>
+
+            <!-- Import History -->
+            <section class="card">
+                <header class="card-header">
+                    <h3>📈 Import History</h3>
+                </header>
+                <div class="card-content">
+                    <div class="action-center" style="margin-bottom: 2rem;">
+                        <button type="button" class="button button-secondary" onclick="loadImportHistory()">
+                            🔍 Load Import History
+                        </button>
+                    </div>
+                    
+                    <div id="importHistory" class="import-history">
+                        <!-- History will be populated here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sample Data -->
+            <section class="card">
+                <header class="card-header">
+                    <h3>📋 Sample Data</h3>
+                </header>
+                <div class="card-content">
+                    <p style="margin-bottom: 2rem; color: var(--gray-600);">
+                        Load sample data for testing
+                    </p>
+                    
+                    <div class="sample-actions" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
+                        <button type="button" class="button button-secondary" onclick="loadSampleData('reginamaria')">
+                            ✅ Load Regina Maria Sample
+                        </button>
+                        <button type="button" class="button button-secondary" onclick="loadSampleData('medlife')">
+                            ✅ Load Medlife Sample
+                        </button>
+                    </div>
+                    
+                    <div id="sampleResult" class="sample-result"></div>
+                </div>
+            </section>
+
+            <!-- Danger Zone -->
+            <section class="card">
+                <header class="card-header">
+                    <h3>⚠️ Danger Zone</h3>
+                </header>
+                <div class="card-content">
+                    <div class="danger-section" style="background: var(--danger); color: white; padding: 1.5rem; border-radius: var(--radius); margin-bottom: 2rem;">
+                        <p style="margin-bottom: 1rem; font-weight: 600;">
+                            ⚠️ Use these actions with extreme caution!
+                        </p>
+                        <button type="button" class="button button-danger" onclick="clearAllData()" style="background: white; color: var(--danger);">
+                            🗑️ Clear All Data
+                        </button>
+                    </div>
+                    
+                    <div id="clearResult" class="clear-result"></div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Toast container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Scripts -->
+    <script src="/static/js/components.js"></script>
+    <script src="/static/js/admin.js"></script>
 </body>
 </html>

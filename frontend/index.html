@@ -1,749 +1,141 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Medical Price Comparator</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .header { text-align: center; margin-bottom: 30px; }
-        .search-section { margin-bottom: 30px; position: relative; }
-        .search-suggestions { 
-            position: absolute; 
-            top: 100%; 
-            left: 0; 
-            right: 0; 
-            background: white; 
-            border: 1px solid #ddd; 
-            border-top: none; 
-            max-height: 200px; 
-            overflow-y: auto; 
-            z-index: 1000; 
-            display: none; 
-        }
-        .suggestion-item { 
-            padding: 10px; 
-            cursor: pointer; 
-            border-bottom: 1px solid #eee; 
-        }
-        .suggestion-item:hover { background: #f5f5f5; }
-        .suggestion-category { 
-            font-size: 0.8em; 
-            color: #666; 
-            font-style: italic; 
-        }
-        .analysis-table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin-top: 20px; 
-            background: white; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
-        }
-        .table-header { 
-            background: #f8f9fa; 
-            font-weight: bold; 
-        }
-        .remove-btn { 
-            background: #dc3545; 
-            color: white; 
-            border: none; 
-            padding: 4px 8px; 
-            cursor: pointer; 
-            border-radius: 3px; 
-            font-size: 0.8em; 
-        }
-        .remove-btn:hover { background: #c82333; }
-        .table-section { 
-            margin-top: 30px; 
-            padding: 20px; 
-            background: #f8f9fa; 
-            border-radius: 8px; 
-        }
-        .totals-section { 
-            margin-top: 20px; 
-            padding: 15px; 
-            background: #e9ecef; 
-            border-radius: 5px; 
-        }
-        .total-row { 
-            display: flex; 
-            justify-content: space-between; 
-            margin: 5px 0; 
-            font-weight: bold; 
-        }
-        .ocr-manual-match { 
-            margin-top: 20px; 
-            padding: 15px; 
-            background: #fff3cd; 
-            border-left: 4px solid #ffc107; 
-            border-radius: 4px; 
-        }
-        .unmatched-item { 
-            margin: 10px 0; 
-            padding: 10px; 
-            background: white; 
-            border: 1px solid #ddd; 
-            border-radius: 4px; 
-        }
-        .upload-section { margin-bottom: 30px; padding: 20px; border: 2px dashed #ccc; }
-        .results-section { margin-top: 30px; }
-        input, button { padding: 10px; margin: 5px; }
-        button { background: #007bff; color: white; border: none; cursor: pointer; }
-        button:hover { background: #0056b3; }
-        .price-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        .price-table th, .price-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        .price-table th { background-color: #f2f2f2; position: sticky; top: 0; }
-        .loading { display: none; text-align: center; }
-        .admin-link { 
-            position: absolute; 
-            top: 20px; 
-            right: 20px; 
-            background: #28a745; 
-            color: white; 
-            padding: 8px 15px; 
-            text-decoration: none; 
-            border-radius: 4px; 
-        }
-        .admin-link:hover { background: #218838; }
-        .pending-row { 
-            background-color: #fff3cd !important; 
-            border-left: 4px solid #ffc107; 
-        }
-        .pending-row td { 
-            vertical-align: middle; 
-        }
-        .pending-text { 
-            font-style: italic; 
-            color: #856404; 
-        }
-        .table-search-input { 
-            width: 100%; 
-            padding: 8px; 
-            border: 1px solid #ced4da; 
-            border-radius: 3px; 
-            font-size: 14px;
-        }
-        .table-suggestions { 
-            position: absolute; 
-            top: 100%; 
-            left: 0; 
-            right: 0; 
-            background: white; 
-            border: 1px solid #ddd; 
-            border-top: none; 
-            max-height: 200px; 
-            overflow-y: auto; 
-            z-index: 1000; 
-            display: none; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .table-suggestion-item { 
-            padding: 8px 10px; 
-            cursor: pointer; 
-            border-bottom: 1px solid #eee; 
-            font-size: 13px;
-        }
-        .table-suggestion-item:hover { 
-            background: #f5f5f5; 
-        }
-        .table-suggestion-category { 
-            font-size: 0.7em; 
-            color: #666; 
-            font-style: italic; 
-        }
-        .table-search-container {
-            position: relative;
-        }
-        .resolve-btn { 
-            background: #28a745; 
-            color: white; 
-            border: none; 
-            padding: 4px 8px; 
-            cursor: pointer; 
-            border-radius: 3px; 
-            font-size: 0.8em; 
-            margin-right: 5px; 
-        }
-        .resolve-btn:hover { background: #218838; }
-        .dismiss-btn { 
-            background: #6c757d; 
-            color: white; 
-            border: none; 
-            padding: 4px 8px; 
-            cursor: pointer; 
-            border-radius: 3px; 
-            font-size: 0.8em; 
-        }
-        .dismiss-btn:hover { background: #5a6268; }
-    </style>
+    <title>Medical Price Comparator</title>
+    <meta name="description" content="Compare medical analysis prices across Romanian healthcare providers">
+    <link href="/static/css/style.css" rel="stylesheet">
 </head>
 <body>
-    <a href="/admin.html" class="admin-link">Admin Panel</a>
-    
-    <div class="container">
-        <div class="header">
-            <h1>🏥 Medical Price Comparator</h1>
-            <p>Compare medical analysis prices across Romanian healthcare providers</p>
+    <header class="header">
+        <div class="container">
+            <h1 class="header-title">🏥 Medical Price Comparator</h1>
+            <a href="/admin.html" class="button button-admin">⚙️ Admin</a>
         </div>
-        
-        <div class="upload-section">
-            <h3>📋 Upload Doctor's Recommendation (OCR)</h3>
-            <input type="file" id="imageFile" accept="image/*">
-            <button onclick="processOCR()">Process with AI</button>
-            <div id="ocrLoading" class="loading">Processing image...</div>
-        </div>
-        
-        <div class="search-section">
-            <h3>🔍 Add Analysis to Comparison Table</h3>
-            <div style="position: relative;">
-                <input type="text" id="searchInput" placeholder="Start typing analysis name..." style="width: 70%;" autocomplete="off">
-                <button onclick="addAnalysisToTable()">Add to Table</button>
-                <div id="searchSuggestions" class="search-suggestions"></div>
-            </div>
-        </div>
-        
-        <div class="table-section">
-            <h3>📊 Analysis Comparison Table</h3>
-            <div id="analysisTable">
-                <p>Add analyses using the search box above to start comparing prices.</p>
-            </div>
-            <div id="totalsSection" class="totals-section" style="display: none;">
-                <h4>💰 Price Totals</h4>
-                <div id="totalsList"></div>
-            </div>
-        </div>
-        
-        <div class="results-section">
-            <div id="ocrResults"></div>
-        </div>
-    </div>
-    
-    <script>
-        // Configuration
-        const API_BASE_URL = '/api/v1';
-        
-        // Global state
-        let analysisTable = [];
-        let pendingItems = []; // Store unmatched OCR items
-        let suggestionsTimeout = null;
-        
-        // Initialize event listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('searchInput');
-            searchInput.addEventListener('input', handleSearchInput);
-            searchInput.addEventListener('keydown', handleSearchKeydown);
+    </header>
+
+    <main class="main">
+        <div class="container">
             
-            // Hide suggestions when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!e.target.closest('.search-section')) {
-                    hideSuggestions();
-                }
-                
-                // Hide table suggestions when clicking outside any table search container
-                if (!e.target.closest('.table-search-container')) {
-                    // Hide all table suggestions
-                    pendingItems.forEach(pending => {
-                        hideTableSuggestions(pending.id);
-                    });
-                }
-            });
-        });
-        
-        // Search input handling with suggestions
-        function handleSearchInput(event) {
-            const query = event.target.value.trim();
-            
-            // Clear previous timeout
-            if (suggestionsTimeout) {
-                clearTimeout(suggestionsTimeout);
-            }
-            
-            if (query.length < 2) {
-                hideSuggestions();
-                return;
-            }
-            
-            // Debounce suggestions request
-            suggestionsTimeout = setTimeout(() => {
-                fetchSuggestions(query);
-            }, 300);
-        }
-        
-        function handleSearchKeydown(event) {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                addAnalysisToTable();
-            }
-        }
-        
-        async function fetchSuggestions(query) {
-            try {
-                const response = await fetch(`${API_BASE_URL}/analyses/suggestions?query=${encodeURIComponent(query)}&limit=8`);
-                const data = await response.json();
-                displaySuggestions(data.suggestions || []);
-            } catch (error) {
-                console.error('Error fetching suggestions:', error);
-                hideSuggestions();
-            }
-        }
-        
-        function displaySuggestions(suggestions) {
-            const suggestionsDiv = document.getElementById('searchSuggestions');
-            
-            if (suggestions.length === 0) {
-                hideSuggestions();
-                return;
-            }
-            
-            let html = '';
-            suggestions.forEach(suggestion => {
-                html += `
-                    <div class="suggestion-item" onclick="selectSuggestion('${suggestion.name}')">
-                        <div>${suggestion.name}</div>
-                        <div class="suggestion-category">${suggestion.category}</div>
+            <!-- Hero -->
+            <section class="hero">
+                <h2>Medical Analysis Price Comparison</h2>
+                <p>Compare prices across Romanian healthcare providers</p>
+            </section>
+
+            <!-- OCR Upload -->
+            <section class="card">
+                <header class="card-header">
+                    <h3>📤 Upload Doctor's Recommendation</h3>
+                </header>
+                <div class="card-content">
+                    <div class="upload-zone" id="uploadZone">
+                        <div class="upload-content">
+                            <div class="upload-icon">☁️</div>
+                            <p>Drag & drop your file here or click to browse</p>
+                            <input type="file" id="fileInput" accept="image/*" hidden>
+                            <button type="button" class="button button-outline" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">
+                                📁 Choose File
+                            </button>
+                        </div>
                     </div>
-                `;
-            });
-            
-            suggestionsDiv.innerHTML = html;
-            suggestionsDiv.style.display = 'block';
-        }
-        
-        function hideSuggestions() {
-            const suggestionsDiv = document.getElementById('searchSuggestions');
-            suggestionsDiv.style.display = 'none';
-        }
-        
-        function selectSuggestion(analysisName) {
-            document.getElementById('searchInput').value = analysisName;
-            hideSuggestions();
-            addAnalysisToTable();
-        }
-        
-        // Table search functionality for pending items
-        let tableSearchTimeouts = {};
-        
-        function handleTableSearchInput(pendingId, query) {
-            // Clear previous timeout for this specific search
-            if (tableSearchTimeouts[pendingId]) {
-                clearTimeout(tableSearchTimeouts[pendingId]);
-            }
-            
-            query = query.trim();
-            
-            if (query.length < 2) {
-                hideTableSuggestions(pendingId);
-                return;
-            }
-            
-            // Debounce suggestions request
-            tableSearchTimeouts[pendingId] = setTimeout(() => {
-                fetchTableSuggestions(pendingId, query);
-            }, 300);
-        }
-        
-        async function fetchTableSuggestions(pendingId, query) {
-            try {
-                const response = await fetch(`${API_BASE_URL}/analyses/suggestions?query=${encodeURIComponent(query)}&limit=8`);
-                const data = await response.json();
-                displayTableSuggestions(pendingId, data.suggestions || []);
-            } catch (error) {
-                console.error('Error fetching table suggestions:', error);
-                hideTableSuggestions(pendingId);
-            }
-        }
-        
-        function displayTableSuggestions(pendingId, suggestions) {
-            const suggestionsDiv = document.getElementById(`tableSuggestions_${pendingId}`);
-            
-            if (!suggestionsDiv) {
-                return; // Element might not exist if table was updated
-            }
-            
-            if (suggestions.length === 0) {
-                hideTableSuggestions(pendingId);
-                return;
-            }
-            
-            let html = '';
-            suggestions.forEach(suggestion => {
-                html += `
-                    <div class="table-suggestion-item" onclick="selectTableSuggestion(${pendingId}, '${suggestion.name}')">
-                        <div>${suggestion.name}</div>
-                        <div class="table-suggestion-category">${suggestion.category}</div>
+                    
+                    <div class="file-info" id="fileInfo">
+                        <span class="file-name" id="fileName"></span>
+                        <button type="button" class="file-remove" onclick="clearFile()">❌</button>
                     </div>
-                `;
-            });
-            
-            suggestionsDiv.innerHTML = html;
-            suggestionsDiv.style.display = 'block';
-        }
-        
-        function hideTableSuggestions(pendingId) {
-            const suggestionsDiv = document.getElementById(`tableSuggestions_${pendingId}`);
-            if (suggestionsDiv) {
-                suggestionsDiv.style.display = 'none';
-            }
-        }
-        
-        async function selectTableSuggestion(pendingId, analysisName) {
-            try {
-                // Hide suggestions immediately
-                hideTableSuggestions(pendingId);
-                
-                // Try to add the selected analysis
-                const response = await fetch(`${API_BASE_URL}/analyses/compare`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        analysis_names: [analysisName]
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.results && data.results.length > 0 && data.results[0].found !== false) {
-                    const analysis = data.results[0];
                     
-                    // Add to table if not already there
-                    if (!analysisTable.some(item => item.name === analysis.name)) {
-                        analysisTable.push(analysis);
-                    }
+                    <div class="action-center">
+                        <button type="button" class="button button-primary" id="processButton" onclick="processOCR()">
+                            <span id="processIcon">✨</span>
+                            <span id="processText">Process with AI</span>
+                        </button>
+                    </div>
                     
-                    // Remove from pending items
-                    pendingItems = pendingItems.filter(item => item.id !== pendingId);
+                    <!-- OCR Results -->
+                    <div class="ocr-results" id="ocrResults">
+                        <header class="ocr-results-header">
+                            <h4>✅ OCR Results</h4>
+                            <button type="button" class="toggle-button" id="ocrToggle" onclick="toggleOCRResults()">
+                                <span id="ocrToggleIcon">🔽</span>
+                                <span id="ocrToggleText">Expand</span>
+                            </button>
+                        </header>
+                        <div class="ocr-results-content" id="ocrResultsContent">
+                            <!-- Unmatched items -->
+                            <div class="unmatched-section" id="unmatchedSection">
+                                <h5>⚠️ Items Requiring Manual Resolution</h5>
+                                <div id="unmatchedList"></div>
+                            </div>
+                            <!-- Matched items -->
+                            <div class="matched-section" id="matchedSection">
+                                <h5>Detected Analyses</h5>
+                                <div id="matchedList"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analysis Table -->
+            <section class="card">
+                <header class="card-header">
+                    <h3>📊 Analysis Comparison Table</h3>
+                </header>
+                <div class="card-content">
+                    <div class="search-section">
+                        <div class="search-container">
+                            <input type="text" 
+                                   class="search-input" 
+                                   id="searchInput"
+                                   placeholder="Search medical analyses..."
+                                   autocomplete="off">
+                            <div class="suggestions" id="suggestions"></div>
+                        </div>
+                        <button type="button" class="button button-primary" onclick="addToTable()">
+                            ➕ Add to Table
+                        </button>
+                    </div>
                     
-                    updateAnalysisTable();
-                } else {
-                    alert('Could not find the selected analysis in database.');
-                }
-            } catch (error) {
-                alert('Error adding analysis: ' + error.message);
-            }
-        }
-        
-        async function addAnalysisToTable() {
-            const searchInput = document.getElementById('searchInput');
-            const analysisName = searchInput.value.trim();
-            
-            if (!analysisName) {
-                alert('Please enter an analysis name');
-                return;
-            }
-            
-            // Check if already in table
-            if (analysisTable.some(item => item.name.toLowerCase() === analysisName.toLowerCase())) {
-                alert('This analysis is already in the table');
-                searchInput.value = '';
-                hideSuggestions();
-                return;
-            }
-            
-            try {
-                // Search for the analysis
-                const response = await fetch(`${API_BASE_URL}/analyses/compare`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        analysis_names: [analysisName]
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.results && data.results.length > 0) {
-                    const analysis = data.results[0];
-                    analysisTable.push(analysis);
-                    searchInput.value = '';
-                    hideSuggestions();
-                    updateAnalysisTable();
-                } else {
-                    alert('Analysis not found in database');
-                }
-            } catch (error) {
-                alert('Error adding analysis: ' + error.message);
-            }
-        }
-        
-        function removeAnalysisFromTable(index) {
-            analysisTable.splice(index, 1);
-            updateAnalysisTable();
-        }
-        
-        function updateAnalysisTable() {
-            const tableDiv = document.getElementById('analysisTable');
-            
-            if (analysisTable.length === 0 && pendingItems.length === 0) {
-                tableDiv.innerHTML = '<p>Add analyses using the search box above to start comparing prices.</p>';
-                document.getElementById('totalsSection').style.display = 'none';
-                return;
-            }
-            
-            // Get all unique providers from confirmed analyses
-            const providers = new Set();
-            analysisTable.forEach(analysis => {
-                Object.keys(analysis.prices || {}).forEach(provider => {
-                    providers.add(provider);
-                });
-            });
-            
-            // If no providers yet, add some default ones for display
-            if (providers.size === 0) {
-                providers.add('reginamaria');
-                providers.add('medlife');
-            }
-            
-            let html = '<table class="analysis-table">';
-            html += '<thead class="table-header"><tr><th>Analysis</th>';
-            
-            Array.from(providers).forEach(provider => {
-                html += `<th>${provider.charAt(0).toUpperCase() + provider.slice(1)}</th>`;
-            });
-            
-            html += '<th>Actions</th></tr></thead><tbody>';
-            
-            // Add confirmed analyses
-            analysisTable.forEach((analysis, index) => {
-                html += `<tr><td><strong>${analysis.name}</strong>`;
-                if (analysis.alternative_names && analysis.alternative_names.length > 0) {
-                    html += `<br><small>(${analysis.alternative_names.join(', ')})</small>`;
-                }
-                html += '</td>';
-                
-                Array.from(providers).forEach(provider => {
-                    const providerPrices = analysis.prices && analysis.prices[provider];
-                    html += '<td>';
-                    
-                    if (providerPrices) {
-                        if (providerPrices.normal) {
-                            html += `Normal: ${providerPrices.normal.amount} ${providerPrices.normal.currency}<br>`;
-                        }
-                        if (providerPrices.premium) {
-                            html += `Premium: ${providerPrices.premium.amount} ${providerPrices.premium.currency}<br>`;
-                        }
-                        if (providerPrices.subscription) {
-                            html += `Subscription: ${providerPrices.subscription.amount} ${providerPrices.subscription.currency}`;
-                        }
-                    } else {
-                        html += 'N/A';
-                    }
-                    
-                    html += '</td>';
-                });
-                
-                html += `<td><button class="remove-btn" onclick="removeAnalysisFromTable(${index})">Remove</button></td>`;
-                html += '</tr>';
-            });
-            
-            // Add pending items that need resolution
-            pendingItems.forEach((pending, index) => {
-                html += `<tr class="pending-row"><td>`;
-                html += `<span class="pending-text">📋 Detected: "${pending.detectedText}"</span><br>`;
-                html += `<small>OCR detected item - needs manual resolution</small>`;
-                html += '</td>';
-                
-                // Span across provider columns with search input
-                html += `<td colspan="${providers.size}">`;
-                html += `<div class="table-search-container">`;
-                html += `<input type="text" class="table-search-input" id="search_${pending.id}" `;
-                html += `value="${pending.detectedText}" `;
-                html += `placeholder="Search for analysis name..." `;
-                html += `autocomplete="off" `;
-                html += `oninput="handleTableSearchInput(${pending.id}, this.value)" `;
-                html += `onfocus="this.select(); handleTableSearchInput(${pending.id}, this.value)">`;
-                html += `<div id="tableSuggestions_${pending.id}" class="table-suggestions"></div>`;
-                html += `</div>`;
-                html += '</td>';
-                
-                html += `<td>`;
-                html += `<button class="dismiss-btn" onclick="dismissPendingItem(${index})">Dismiss</button>`;
-                html += '</td>';
-                html += '</tr>';
-            });
-            
-            html += '</tbody></table>';
-            tableDiv.innerHTML = html;
-            
-            // Update totals (only for confirmed analyses)
-            updateTotals(providers);
-        }
-        
-        function updateTotals(providers) {
-            const totalsSection = document.getElementById('totalsSection');
-            const totalsList = document.getElementById('totalsList');
-            
-            if (analysisTable.length === 0) {
-                totalsSection.style.display = 'none';
-                return;
-            }
-            
-            let totalsHtml = '';
-            
-            Array.from(providers).forEach(provider => {
-                const totals = {
-                    normal: 0,
-                    premium: 0,
-                    subscription: 0
-                };
-                
-                let hasData = false;
-                
-                analysisTable.forEach(analysis => {
-                    const providerPrices = analysis.prices && analysis.prices[provider];
-                    if (providerPrices) {
-                        if (providerPrices.normal) {
-                            totals.normal += providerPrices.normal.amount;
-                            hasData = true;
-                        }
-                        if (providerPrices.premium) {
-                            totals.premium += providerPrices.premium.amount;
-                            hasData = true;
-                        }
-                        if (providerPrices.subscription) {
-                            totals.subscription += providerPrices.subscription.amount;
-                            hasData = true;
-                        }
-                    }
-                });
-                
-                if (hasData) {
-                    totalsHtml += `<h5>${provider.charAt(0).toUpperCase() + provider.slice(1)} Totals:</h5>`;
-                    if (totals.normal > 0) {
-                        totalsHtml += `<div class="total-row"><span>Normal Plan:</span><span>${totals.normal.toFixed(2)} RON</span></div>`;
-                    }
-                    if (totals.premium > 0) {
-                        totalsHtml += `<div class="total-row"><span>Premium Plan:</span><span>${totals.premium.toFixed(2)} RON</span></div>`;
-                    }
-                    if (totals.subscription > 0) {
-                        totalsHtml += `<div class="total-row"><span>Subscription Plan:</span><span>${totals.subscription.toFixed(2)} RON</span></div>`;
-                    }
-                    totalsHtml += '<br>';
-                }
-            });
-            
-            totalsList.innerHTML = totalsHtml;
-            totalsSection.style.display = 'block';
-        }
-        
-        async function processOCR() {
-            const fileInput = document.getElementById('imageFile');
-            const loading = document.getElementById('ocrLoading');
-            const ocrResults = document.getElementById('ocrResults');
-            
-            if (!fileInput.files[0]) {
-                alert('Please select an image file');
-                return;
-            }
-            
-            loading.style.display = 'block';
-            ocrResults.innerHTML = '';
-            
-            const formData = new FormData();
-            formData.append('image', fileInput.files[0]);
-            
-            try {
-                const response = await fetch(`${API_BASE_URL}/ocr/process`, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const result = await response.json();
-                
-                if (result.analyses && result.analyses.length > 0) {
-                    await processOCRResults(result.analyses);
-                } else {
-                    ocrResults.innerHTML = '<div class="ocr-manual-match"><h4>⚠️ No analyses detected</h4><p>The OCR could not detect any medical analysis names in the image. Please try a clearer image or add analyses manually using the search box above.</p></div>';
-                }
-            } catch (error) {
-                ocrResults.innerHTML = '<div class="ocr-manual-match"><h4>❌ Error processing image</h4><p>' + error.message + '</p></div>';
-            } finally {
-                loading.style.display = 'none';
-            }
-        }
-        
-        function dismissPendingItem(index) {
-            pendingItems.splice(index, 1);
-            updateAnalysisTable();
-        }
-        
-        async function processOCRResults(detectedAnalyses) {
-            const ocrResults = document.getElementById('ocrResults');
-            let matched = [];
-            let unmatched = [];
-            
-            // Try to match each detected analysis
-            for (const analysisName of detectedAnalyses) {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/analyses/compare`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            analysis_names: [analysisName]
-                        })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.results && data.results.length > 0 && data.results[0].found !== false) {
-                        matched.push(data.results[0]);
-                    } else {
-                        unmatched.push(analysisName);
-                    }
-                } catch (error) {
-                    unmatched.push(analysisName);
-                }
-            }
-            
-            let html = '<h4>🔍 OCR Processing Results</h4>';
-            
-            // Show matched analyses
-            if (matched.length > 0) {
-                html += '<h5>✅ Automatically Matched Analyses:</h5>';
-                html += '<p>These analyses were automatically found in our database and added to your comparison table:</p>';
-                html += '<ul>';
-                matched.forEach(analysis => {
-                    html += `<li><strong>${analysis.name}</strong> - ${analysis.category}</li>`;
-                    // Add to table if not already there
-                    if (!analysisTable.some(item => item.name === analysis.name)) {
-                        analysisTable.push(analysis);
-                    }
-                });
-                html += '</ul>';
-            }
-            
-            // Add unmatched items to pending resolution in the table
-            if (unmatched.length > 0) {
-                html += '<h5>⚠️ Unmatched Items Added to Table:</h5>';
-                html += '<p>The following items were detected but could not be automatically matched. They have been added to the comparison table where you can resolve them using the dropdown options:</p>';
-                html += '<ul>';
-                
-                unmatched.forEach((item, index) => {
-                    html += `<li><strong>"${item}"</strong> - Review in table below</li>`;
-                    
-                    // Add to pending items if not already there
-                    if (!pendingItems.some(pending => pending.detectedText === item)) {
-                        pendingItems.push({
-                            detectedText: item,
-                            id: Date.now() + index, // Unique ID
-                            suggestions: [] // Will be populated when dropdown is opened
-                        });
-                    }
-                });
-                
-                html += '</ul>';
-                html += '<p><strong>💡 Tip:</strong> Use the dropdown in each unmatched row to search for similar analyses or dismiss items that are not medical tests.</p>';
-            }
-            
-            ocrResults.innerHTML = html;
-            updateAnalysisTable();
-        }
-    </script>
+                    <div class="table-container" id="tableContainer">
+                        <div class="empty-state" id="emptyState">
+                            <div class="empty-icon">📈</div>
+                            <p>Add analyses to start comparing prices</p>
+                        </div>
+                        
+                        <div class="table-wrapper" id="tableWrapper">
+                            <table class="comparison-table" id="comparisonTable">
+                                <thead>
+                                    <tr>
+                                        <th>Analysis</th>
+                                        <th>Reginamaria</th>
+                                        <th>Medlife</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody"></tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="totals-section" id="totalsSection">
+                            <h4>🧮 Price Totals</h4>
+                            <div class="totals-grid" id="totalsGrid"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Toast container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Scripts -->
+    <script src="/static/js/components.js"></script>
+    <script src="/static/js/ocr.js"></script>
+    <script src="/static/js/search.js"></script>
+    <script src="/static/js/table.js"></script>
+    <script src="/static/js/app.js"></script>
 </body>
 </html>
